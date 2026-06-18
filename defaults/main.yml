@@ -19,6 +19,7 @@ zsh_path:
   - /sbin
   - /bin
   - /opt/homebrew/bin
+  - /usr/local/lib/npm/bin
 
 zsh_load_etc_profile: yes
 
