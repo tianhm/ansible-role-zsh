@@ -74,20 +74,21 @@ existing powerlevel10k default or the role's curated prompt layout.
 ## Implementation Steps
 
 ### Task 1: Add `zsh_theme` selector variable and normalized flag
-- [ ] add `zsh_theme: powerlevel10k` to `defaults/main.yml` near the theme settings (with a
+- [x] add `zsh_theme: powerlevel10k` to `defaults/main.yml` near the theme settings (with a
       comment listing valid values: `powerlevel10k`, `starship`), keeping `zsh_antigen_theme`
       as-is for backward compatibility.
-- [ ] add starship defaults to `defaults/main.yml`: `zsh_starship_version` (pinned, e.g.
+- [x] add starship defaults to `defaults/main.yml`: `zsh_starship_version` (pinned, e.g.
       `"1.23.0"`), `zsh_starship_path: "$HOME/bin"`, `zsh_starship_manage_config: yes`,
       `zsh_starship_config: ""` (raw verbatim override; empty = use generated preset).
-- [ ] add to `vars/main.yml`: `zsh_theme_is_starship: "{{ zsh_theme == 'starship' }}"`, plus
+- [x] add to `vars/main.yml`: `zsh_theme_is_starship: "{{ zsh_theme == 'starship' }}"`, plus
       starship download facts mirroring fzf (`zsh_starship_arch`, `zsh_starship_url` or the
       install-script invocation inputs) and `zsh_starship_path_absolute`
       (`zsh_starship_path | replace('$HOME', '~' + zsh_user)`).
-- [ ] confirm the home-bin dir (`$HOME/bin`) is on PATH for starship via existing `zsh_path`
+- [x] confirm the home-bin dir (`$HOME/bin`) is on PATH for starship via existing `zsh_path`
       (it already includes `zsh_fzf_path`); if starship uses a different dir, add it to `zsh_path`.
-- [ ] run `ansible-playbook --syntax-check playbook.yml` (or molecule `default` converge) — must
-      pass before Task 2.
+      (starship uses `$HOME/bin` = `zsh_fzf_path`, already in `zsh_path` — no change needed.)
+- [x] run `ansible-playbook --syntax-check playbook.yml` (or molecule `default` converge) — must
+      pass before Task 2. (syntax-check via role path passes; new vars render for both theme values.)
 
 ### Task 2: Install the starship binary (`tasks/starship.yml`)
 - [ ] create `tasks/starship.yml`: idempotent install of starship to `zsh_starship_path` using the

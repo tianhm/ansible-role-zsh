@@ -79,7 +79,16 @@ zsh_shared: no
 zsh_source_for_all_users: no
 zsh_change_user_shell: yes
 
+# prompt theme selector, valid values: powerlevel10k, starship
+zsh_theme: powerlevel10k
+
 zsh_antigen_theme: "romkatv/powerlevel10k powerlevel10k"
+
+# starship (used when zsh_theme == 'starship')
+zsh_starship_version: "1.23.0"
+zsh_starship_path: "$HOME/bin"
+zsh_starship_manage_config: yes
+zsh_starship_config: "" # raw verbatim starship.toml override; empty = use generated preset
 
 zsh_hotkeys:
   # home & end keys work
