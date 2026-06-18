@@ -1,6 +1,13 @@
 # [master](https://github.com/viasite-ansible/ansible-role-zsh/compare/v3.7.0...v) (2024-05-26)
 
 
+### Features
+
+* add selectable starship prompt theme via `zsh_theme` (default stays `powerlevel10k`, fully backward compatible)
+* install starship binary to `zsh_starship_path` and activate it in `.zshrc` with `starship init zsh`
+* generate `~/.config/starship.toml` preset from existing powerlevel9k vars (`zsh_starship_manage_config`, `zsh_starship_config` for verbatim override)
+
+
 
 # [3.7.0](https://github.com/viasite-ansible/ansible-role-zsh/compare/v3.6.1...v3.7.0) (2024-05-26)
 

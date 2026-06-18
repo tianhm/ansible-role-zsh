@@ -41,6 +41,40 @@ Then [configure terminal application](#configure-terminal-application).
 - load `/etc/profile.d` scripts
 - install only plugins that useful for your machine. For example, plugin `docker` will not install if you have not Docker
 
+## Prompt theme
+The role supports two selectable prompt themes via the `zsh_theme` variable:
+
+- `powerlevel10k` (**default**) — the classic antigen-bundled [powerlevel10k](https://github.com/romkatv/powerlevel10k) prompt.
+- `starship` — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
+
+The default stays `powerlevel10k`, so existing deployments are unaffected (fully backward compatible — with default vars the rendered `.zshrc` is unchanged).
+
+To switch to starship:
+``` yaml
+- hosts: all
+  vars:
+    zsh_theme: starship
+  roles:
+    - viasite-ansible.zsh
+```
+
+When `starship` is selected, the powerlevel10k/powerlevel9k wiring is skipped, the starship binary is
+installed to `zsh_starship_path`, the prompt is activated in `.zshrc` with `eval "$(starship init zsh)"`,
+and a `~/.config/starship.toml` is generated to reproduce the role's p9k-style prompt segments and colors.
+
+starship-related variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `zsh_theme` | `powerlevel10k` | Prompt theme: `powerlevel10k` or `starship`. |
+| `zsh_starship_version` | `"1.23.0"` | Pinned starship binary version to install. |
+| `zsh_starship_path` | `"$HOME/bin"` | Install directory for the starship binary (already on PATH; `/usr/local/bin` when `zsh_shared`). |
+| `zsh_starship_manage_config` | `yes` | Render and manage `~/.config/starship.toml` (and export `STARSHIP_CONFIG`). Set `no` to leave the config alone. |
+| `zsh_starship_config` | `""` | Raw verbatim `starship.toml` content. When set, it is written as-is instead of the generated preset. |
+
+Note: like powerlevel10k, starship needs a [Nerd Font](https://www.nerdfonts.com/) installed in your terminal
+to render the prompt icons/glyphs correctly.
+
 ## 1.5 mins demo
 ![1.5 mins demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-demo.gif?raw=true)
 

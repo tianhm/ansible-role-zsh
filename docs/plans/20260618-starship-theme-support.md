@@ -166,12 +166,12 @@ existing powerlevel10k default or the role's curated prompt layout.
       scenario and prior tasks' render-parity diffs.
 
 ### Task 6: Documentation
-- [ ] update `README.md`: document `zsh_theme` (default `powerlevel10k`, option `starship`),
+- [x] update `README.md`: document `zsh_theme` (default `powerlevel10k`, option `starship`),
       `zsh_starship_version`, `zsh_starship_path`, `zsh_starship_manage_config`,
       `zsh_starship_config`; note starship needs a Nerd Font and is installed as a standalone
       binary; mention backward compatibility (defaults unchanged).
-- [ ] update `meta/main.yml` description to mention selectable starship prompt (optional).
-- [ ] add a CHANGELOG.md entry consistent with existing format.
+- [x] update `meta/main.yml` description to mention selectable starship prompt (optional).
+- [x] add a CHANGELOG.md entry consistent with existing format.
 
 ### Task 7: Verify acceptance criteria
 - [ ] verify Overview requirements: theme selectable; default = powerlevel10k; starship installs +
