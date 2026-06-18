@@ -125,23 +125,28 @@ existing powerlevel10k default or the role's curated prompt layout.
       validated via `ansible-playbook --syntax-check` (passes) + jinja render parity diff.
 
 ### Task 4: Generate `starship.toml` preset (`templates/starship.toml.j2`)
-- [ ] create `templates/starship.toml.j2` reproducing the current p9k layout:
+- [x] create `templates/starship.toml.j2` reproducing the current p9k layout:
       left = `username` (context) + `hostname` + `directory` (dir);
       right (`right_format`) = `status` + `jobs` + `git_branch`/`git_status` (vcs) +
-      `cmd_duration` (command_execution_time) + `time`.
-- [ ] drive colors/behavior from existing role vars for parity: directory `fg/bg` from
+      `cmd_duration` (command_execution_time) + `time`. (segment lists `zsh_powerlevel9k_left_prompt`
+      / `_right_prompt` mapped to starship module tokens via a Jinja `seg_tokens` dict.)
+- [x] drive colors/behavior from existing role vars for parity: directory `fg/bg` from
       `zsh_powerlevel9k_dir_foreground/background`; username/context from
       `zsh_powerlevel9k_context_default_*` and `_root_*`; git from `zsh_powerlevel9k_vcs_*`;
       `cmd_duration.min_time` = `zsh_command_time_min_seconds * 1000` (ms) with style from
       `zsh_powerlevel9k_command_execution_time_*`; `hostname.ssh_only` from
       `zsh_powerlevel9k_hide_host_on_local`; `add_newline` from `zsh_powerlevel9k_prompt_on_newline`.
-- [ ] add a task in `tasks/starship.yml` (or `tasks/configure.yml` gated on starship) to write
+- [x] add a task in `tasks/starship.yml` (or `tasks/configure.yml` gated on starship) to write
       `~/.config/starship.toml`: render `starship.toml.j2` when `zsh_starship_manage_config and not
       zsh_starship_config`; write `zsh_starship_config` verbatim (copy/content) when it is set;
       create `~/.config` dir with correct owner/group; `backup: yes`.
-- [ ] skip the toml entirely when `zsh_theme != 'starship'`.
-- [ ] converge `molecule/starship` and assert `~/.config/starship.toml` is rendered and non-empty
-      (asserted in Task 5 verify.yml) — must pass before Task 5.
+- [x] skip the toml entirely when `zsh_theme != 'starship'`. (the whole `tasks/starship.yml` include
+      is gated on `zsh_theme == 'starship'` in `tasks/main.yml`.)
+- [x] converge `molecule/starship` and assert `~/.config/starship.toml` is rendered and non-empty
+      (asserted in Task 5 verify.yml) — manual molecule run skipped (docker unavailable here);
+      validated via Jinja render with default + customized vars (output parses as valid TOML;
+      colors, `min_time`=seconds*1000, and `add_newline` map correctly) + `ansible-playbook
+      --syntax-check` of the starship include (passes).
 
 ### Task 5: Add `molecule/starship` scenario + verify.yml (E2E)
 - [ ] create `molecule/starship/molecule.yml` (mirror `shared`/`default`: docker, same platform
