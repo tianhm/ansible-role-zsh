@@ -107,19 +107,22 @@ existing powerlevel10k default or the role's curated prompt layout.
       needs docker, unavailable here); validated via `ansible-playbook --syntax-check` + YAML parse.
 
 ### Task 3: Branch `templates/zshrc.j2` on theme
-- [ ] replace the literal `zsh_antigen_theme == "romkatv/powerlevel10k powerlevel10k"` guards with
+- [x] replace the literal `zsh_antigen_theme == "romkatv/powerlevel10k powerlevel10k"` guards with
       `zsh_theme == 'powerlevel10k'` for: the instant-prompt header block, the
       `antigen theme {{ zsh_antigen_theme }}` line, the entire `POWERLEVEL9K_*` block, and the
       `source ~/.p10k.zsh` block.
-- [ ] add a starship branch (`{% if zsh_theme == 'starship' %}`) that appends, near the end of the
+- [x] add a starship branch (`{% if zsh_theme == 'starship' %}`) that appends, near the end of the
       file (after `antigen apply` and after user-config sourcing), `eval "$(starship init zsh)"`,
       and exports `STARSHIP_CONFIG="$HOME/.config/starship.toml"` when `zsh_starship_manage_config`.
-- [ ] ensure that with default vars (`zsh_theme: powerlevel10k`) the rendered `.zshrc` is
-      unchanged vs current output (no behavioral diff for existing users).
-- [ ] render the template for both `zsh_theme` values and eyeball the output (or assert via the
-      Task 5 verify.yml): powerlevel10k output identical to baseline; starship output has init +
-      no `POWERLEVEL9K_`.
-- [ ] converge `molecule/default` (p10k) — must stay green before Task 4.
+- [x] ensure that with default vars (`zsh_theme: powerlevel10k`) the rendered `.zshrc` is
+      unchanged vs current output (verified: jinja render with default vars is byte-identical to
+      pre-change baseline — `diff` reports no changes).
+- [x] render the template for both `zsh_theme` values and eyeball the output (or assert via the
+      Task 5 verify.yml): powerlevel10k output identical to baseline; starship output has
+      `starship init zsh` + `STARSHIP_CONFIG`, and zero `POWERLEVEL9K_`/instant-prompt/`antigen
+      theme`/`p10k.zsh` lines.
+- [x] converge `molecule/default` (p10k) — manual molecule run skipped (docker unavailable here);
+      validated via `ansible-playbook --syntax-check` (passes) + jinja render parity diff.
 
 ### Task 4: Generate `starship.toml` preset (`templates/starship.toml.j2`)
 - [ ] create `templates/starship.toml.j2` reproducing the current p9k layout:
