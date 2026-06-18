@@ -1,32 +1,37 @@
 ---
 # Install the starship prompt binary (used when zsh_theme == 'starship').
-# Mirrors the fzf install pattern: which/version check, get_url tarball, unarchive.
+# Mirrors the fzf install pattern: install-location/version check, get_url
+# tarball, unarchive.
 
-- name: Check starship installed
-  command: which starship
-  changed_when: false
-  failed_when: false
-  check_mode: no
-  register: zsh_register_starship_command
-
-- name: Get installed starship version
-  command: starship --version
-  changed_when: false
-  failed_when: false
-  check_mode: no
-  register: zsh_register_starship_version
-  when: zsh_register_starship_command.rc == 0
-
-- name: Set starship install fact (install when missing or version mismatch)
-  set_fact:
-    zsh_starship_need_install: "{{ zsh_register_starship_command.rc != 0 or zsh_starship_version not in (zsh_register_starship_version.stdout | default('')) }}"
-  changed_when: false
-
+# Resolve the install location first: starship lives in $HOME/bin (per-user) or
+# /usr/local/bin (shared). $HOME/bin is only added to PATH inside the generated
+# .zshrc, not in Ansible's noninteractive shell, so the idempotence check must
+# look at the install location directly rather than `which starship`.
 - name: Set zsh_starship_path_absolute to /usr/local/bin
   set_fact:
     zsh_starship_path_absolute: /usr/local/bin
   changed_when: false
   when: zsh_shared
+
+- name: Check starship installed
+  stat:
+    path: "{{ zsh_starship_path_absolute }}/starship"
+  check_mode: no
+  register: zsh_register_starship_stat
+
+- name: Get installed starship version
+  # shell (not command) so a "~user/bin" install path is tilde-expanded.
+  shell: "{{ zsh_starship_path_absolute }}/starship --version"
+  changed_when: false
+  failed_when: false
+  check_mode: no
+  register: zsh_register_starship_version
+  when: zsh_register_starship_stat.stat.exists
+
+- name: Set starship install fact (install when missing or version mismatch)
+  set_fact:
+    zsh_starship_need_install: "{{ not zsh_register_starship_stat.stat.exists or (zsh_register_starship_version.stdout | default('')).split()[1:2] != [zsh_starship_version] }}"
+  changed_when: false
 
 - name: Ensure users home binary folder is present
   file:
@@ -42,6 +47,8 @@
   get_url:
     url: "{{ zsh_starship_url }}"
     dest: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    # Verify integrity against the SHA256 starship publishes alongside each asset.
+    checksum: "sha256:{{ zsh_starship_url }}.sha256"
     mode: '0644'
   when: zsh_starship_need_install
 
@@ -62,6 +69,8 @@
 
 # starship.toml config (managed only when zsh_starship_manage_config)
 - name: Ensure ~/.config directory is present
+  become: yes
+  become_user: "{{ zsh_user }}"
   file:
     path: "~{{ zsh_user }}/.config"
     owner: "{{ zsh_user }}"
@@ -71,6 +80,8 @@
   when: zsh_starship_manage_config
 
 - name: Write generated starship.toml preset
+  become: yes
+  become_user: "{{ zsh_user }}"
   template:
     src: starship.toml.j2
     dest: "~{{ zsh_user }}/.config/starship.toml"
@@ -80,6 +91,8 @@
   when: zsh_starship_manage_config and not zsh_starship_config
 
 - name: Write verbatim starship.toml override
+  become: yes
+  become_user: "{{ zsh_user }}"
   copy:
     content: "{{ zsh_starship_config }}"
     dest: "~{{ zsh_user }}/.config/starship.toml"

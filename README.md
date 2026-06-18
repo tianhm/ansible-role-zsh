@@ -26,7 +26,8 @@ Then [configure terminal application](#configure-terminal-application).
 - zsh
 - [antigen](https://github.com/zsh-users/antigen)
 - [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
-- [powerlevel9k theme](https://github.com/bhilburn/powerlevel9k)
+- [powerlevel9k/powerlevel10k theme](https://github.com/romkatv/powerlevel10k) (default prompt)
+- [starship prompt](https://starship.rs/) (optional, via `zsh_theme: starship`)
 - [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
 - [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
 - [unixorn/autoupdate-antigen.zshplugin](https://github.com/unixorn/autoupdate-antigen.zshplugin)
@@ -34,6 +35,7 @@ Then [configure terminal application](#configure-terminal-application).
 - [urbainvaes/fzf-marks](https://github.com/popstas/urbainvaes/fzf-marks)
 
 ## Features
+- selectable prompt theme: powerlevel10k (default) or starship (see [Prompt theme](#prompt-theme))
 - customize powerlevel9k theme prompt segments and colors
 - default colors tested with solarized dark and default grey terminal in putty
 - add custom prompt elements from yml

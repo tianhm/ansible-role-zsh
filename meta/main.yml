@@ -30,4 +30,5 @@ galaxy_info:
     - shell
     - user
     - zsh
+    - starship
 dependencies: []

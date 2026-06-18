@@ -9,30 +9,36 @@
   vars:
     zshrc_path: /root/.zshrc
     starship_toml_path: /root/.config/starship.toml
+    # starship installs to $HOME/bin for the per-user (non-shared) path; that dir
+    # is only on PATH inside .zshrc, not in Ansible's noninteractive shell, so
+    # check the binary at its install location rather than via `which`.
+    starship_bin: /root/bin/starship
+    expected_starship_version: "1.23.0"
   tasks:
-    - name: Check starship binary is on PATH
-      command: which starship
-      changed_when: false
-      register: starship_which
+    - name: Stat starship binary at install location
+      stat:
+        path: "{{ starship_bin }}"
+      register: starship_bin_stat
 
-    - name: Assert starship binary was found
+    - name: Assert starship binary was installed
       assert:
         that:
-          - starship_which.rc == 0
-          - starship_which.stdout | length > 0
-        fail_msg: "starship binary not found on PATH"
+          - starship_bin_stat.stat.exists
+          - starship_bin_stat.stat.executable
+        fail_msg: "starship binary not found at {{ starship_bin }}"
 
     - name: Get starship version
-      command: starship --version
+      command: "{{ starship_bin }} --version"
       changed_when: false
       register: starship_version
 
-    - name: Assert starship --version succeeds
+    - name: Assert starship --version reports the pinned version
       assert:
         that:
           - starship_version.rc == 0
           - "'starship' in starship_version.stdout"
-        fail_msg: "starship --version did not succeed"
+          - expected_starship_version in starship_version.stdout
+        fail_msg: "starship --version did not report the pinned version {{ expected_starship_version }}: {{ starship_version.stdout }}"
 
     - name: Read rendered .zshrc
       slurp:
@@ -46,8 +52,8 @@
     - name: Assert .zshrc activates starship
       assert:
         that:
-          - "'starship init zsh' in zshrc_content"
-          - "'STARSHIP_CONFIG' in zshrc_content"
+          - "'eval \"$(starship init zsh)\"' in zshrc_content"
+          - "'export STARSHIP_CONFIG=\"$HOME/.config/starship.toml\"' in zshrc_content"
         fail_msg: ".zshrc does not contain starship activation"
 
     - name: Assert .zshrc has no powerlevel10k wiring
@@ -70,3 +76,17 @@
           - starship_toml_stat.stat.exists
           - starship_toml_stat.stat.size > 0
         fail_msg: "~/.config/starship.toml is missing or empty"
+
+    - name: Validate generated starship.toml parses
+      command: "{{ starship_bin }} print-config"
+      environment:
+        STARSHIP_CONFIG: "{{ starship_toml_path }}"
+      changed_when: false
+      register: starship_print_config
+
+    - name: Assert generated starship.toml is valid TOML
+      assert:
+        that:
+          - starship_print_config.rc == 0
+          - "'$directory' in starship_print_config.stdout or 'directory' in starship_print_config.stdout"
+        fail_msg: "generated starship.toml failed to parse: {{ starship_print_config.stderr }}"

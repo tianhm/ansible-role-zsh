@@ -80,10 +80,10 @@ existing powerlevel10k default or the role's curated prompt layout.
 - [x] add starship defaults to `defaults/main.yml`: `zsh_starship_version` (pinned, e.g.
       `"1.23.0"`), `zsh_starship_path: "$HOME/bin"`, `zsh_starship_manage_config: yes`,
       `zsh_starship_config: ""` (raw verbatim override; empty = use generated preset).
-- [x] add to `vars/main.yml`: `zsh_theme_is_starship: "{{ zsh_theme == 'starship' }}"`, plus
-      starship download facts mirroring fzf (`zsh_starship_arch`, `zsh_starship_url` or the
-      install-script invocation inputs) and `zsh_starship_path_absolute`
-      (`zsh_starship_path | replace('$HOME', '~' + zsh_user)`).
+- [x] add to `vars/main.yml`: starship download facts mirroring fzf (`zsh_starship_arch`,
+      `zsh_starship_os_target`, `zsh_starship_url`) and `zsh_starship_path_absolute`
+      (`zsh_starship_path | replace('$HOME', '~' + zsh_user)`). (A `zsh_theme_is_starship`
+      convenience fact was dropped — tasks/templates gate directly on `zsh_theme == 'starship'`.)
 - [x] confirm the home-bin dir (`$HOME/bin`) is on PATH for starship via existing `zsh_path`
       (it already includes `zsh_fzf_path`); if starship uses a different dir, add it to `zsh_path`.
       (starship uses `$HOME/bin` = `zsh_fzf_path`, already in `zsh_path` — no change needed.)
@@ -196,10 +196,12 @@ existing powerlevel10k default or the role's curated prompt layout.
 
 ## Technical Details
 - **Selector**: `zsh_theme ∈ {powerlevel10k, starship}`; `zsh_antigen_theme` remains the antigen
-  theme string used only on the powerlevel10k path. `zsh_theme_is_starship` is the derived gate.
-- **Install**: official `install.sh`, version-pinned (`v{{ zsh_starship_version }}`), `--bin-dir`
-  = `zsh_starship_path_absolute`; idempotent via `which starship` + version compare; runs as
-  `zsh_user`; only when `zsh_theme == 'starship'`.
+  theme string used only on the powerlevel10k path. Tasks/templates gate directly on
+  `zsh_theme == 'starship'`.
+- **Install**: GitHub release tarball (`zsh_starship_url`, version-pinned via `zsh_starship_version`)
+  downloaded with `get_url` and extracted with `unarchive` to `zsh_starship_path_absolute` —
+  mirrors the fzf install pattern; idempotent via `which starship` + `starship --version` compare
+  (`zsh_starship_need_install`); only when `zsh_theme == 'starship'`.
 - **zshrc activation**: `eval "$(starship init zsh)"` placed after `antigen apply` and user-config
   sourcing; `export STARSHIP_CONFIG` when role manages the toml. starship's own instant prompt is
   not used (powerlevel10k instant-prompt block is skipped on the starship path).

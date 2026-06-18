@@ -13,7 +13,6 @@ zsh_antigen_fzf_path: "{{ zsh_antigen_path }}/repos/https-COLON--SLASH--SLASH-gi
 zsh_fzf_default_opts: "--height {{ zsh_fzf_height }}{% if zsh_fzf_reverse %} --reverse{% endif %}{% if zsh_fzf_border %} --border{% endif %}"
 
 # starship
-zsh_theme_is_starship: "{{ zsh_theme == 'starship' }}"
 zsh_starship_path_absolute: "{{ zsh_starship_path | replace('$HOME', '~' + zsh_user) }}"
 zsh_starship_arch: "{% if 'aarch64' in ansible_architecture or 'arm64' in ansible_architecture %}aarch64{% else %}x86_64{% endif %}"
 zsh_starship_os_target: "{% if ansible_os_family == 'Darwin' %}apple-darwin{% else %}unknown-linux-musl{% endif %}"

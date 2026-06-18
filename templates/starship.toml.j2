@@ -21,11 +21,8 @@
 
 add_newline = {{ zsh_powerlevel9k_prompt_on_newline_bool }}
 
-format = "{{ left | join('') }}$fill$character"
+format = "{{ left | join('') }}$character"
 right_format = "{{ right | join('') }}"
-
-[fill]
-symbol = " "
 
 [username]
 show_always = {{ zsh_powerlevel9k_always_show_user_bool }}
