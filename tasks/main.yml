@@ -5,6 +5,12 @@
     - zsh
     - install
 
+- include_tasks: starship.yml
+  tags:
+    - zsh
+    - install
+  when: zsh_theme == 'starship'
+
 - include_tasks: configure.yml
   tags:
     - zsh

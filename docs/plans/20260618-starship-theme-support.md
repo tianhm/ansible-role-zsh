@@ -91,19 +91,20 @@ existing powerlevel10k default or the role's curated prompt layout.
       pass before Task 2. (syntax-check via role path passes; new vars render for both theme values.)
 
 ### Task 2: Install the starship binary (`tasks/starship.yml`)
-- [ ] create `tasks/starship.yml`: idempotent install of starship to `zsh_starship_path` using the
-      official installer (`curl -sS https://starship.rs/install.sh | sh -s -- --yes --version
-      v{{ zsh_starship_version }} --bin-dir {{ zsh_starship_path_absolute }}`), guarded by a
-      `which starship` / version check so it only runs when missing or version-mismatched
-      (`changed_when` accurate; `become_user: "{{ zsh_user }}"`).
-- [ ] ensure the bin dir exists (reuse the `file: state=directory` pattern from `install.yml`).
-- [ ] handle macOS vs Linux the same way (installer supports both); do not break the
-      powerlevel10k path when starship is unselected.
-- [ ] include `tasks/starship.yml` from `tasks/main.yml` with `when: zsh_theme == 'starship'`
-      and appropriate tags (`zsh`, `install`).
-- [ ] converge `molecule/starship` (created in Task 5; until then, a temporary local converge with
-      `zsh_theme: starship`) and assert starship binary is present — must pass before Task 3.
-      `[x] tests deferred to Task 5 verify.yml where starship binary presence is asserted`
+- [x] create `tasks/starship.yml`: idempotent install of starship to `zsh_starship_path`. Mirrors
+      the role's existing fzf pattern (`get_url` tarball + `unarchive` using the per-OS
+      `zsh_starship_url` facts added in Task 1) rather than piping the official install.sh — more
+      idempotent and consistent with `install.yml`. Guarded by a `which starship` + `starship
+      --version` check that sets `zsh_starship_need_install` (install only when missing or
+      version-mismatched); `changed_when: false` on the checks.
+- [x] ensure the bin dir exists (reuses the `file: state=directory` pattern from `install.yml`;
+      `zsh_starship_path_absolute` set to `/usr/local/bin` when `zsh_shared`).
+- [x] handle macOS vs Linux the same way (tarball URL switches on `zsh_starship_os_target`); the
+      powerlevel10k path is untouched because the include is gated on `zsh_theme == 'starship'`.
+- [x] include `tasks/starship.yml` from `tasks/main.yml` with `when: zsh_theme == 'starship'`
+      and `zsh`/`install` tags.
+- [x] tests deferred to Task 5 verify.yml where starship binary presence is asserted (molecule
+      needs docker, unavailable here); validated via `ansible-playbook --syntax-check` + YAML parse.
 
 ### Task 3: Branch `templates/zshrc.j2` on theme
 - [ ] replace the literal `zsh_antigen_theme == "romkatv/powerlevel10k powerlevel10k"` guards with

@@ -1,0 +1,61 @@
+---
+# Install the starship prompt binary (used when zsh_theme == 'starship').
+# Mirrors the fzf install pattern: which/version check, get_url tarball, unarchive.
+
+- name: Check starship installed
+  command: which starship
+  changed_when: false
+  failed_when: false
+  check_mode: no
+  register: zsh_register_starship_command
+
+- name: Get installed starship version
+  command: starship --version
+  changed_when: false
+  failed_when: false
+  check_mode: no
+  register: zsh_register_starship_version
+  when: zsh_register_starship_command.rc == 0
+
+- name: Set starship install fact (install when missing or version mismatch)
+  set_fact:
+    zsh_starship_need_install: "{{ zsh_register_starship_command.rc != 0 or zsh_starship_version not in (zsh_register_starship_version.stdout | default('')) }}"
+  changed_when: false
+
+- name: Set zsh_starship_path_absolute to /usr/local/bin
+  set_fact:
+    zsh_starship_path_absolute: /usr/local/bin
+  changed_when: false
+  when: zsh_shared
+
+- name: Ensure users home binary folder is present
+  file:
+    path: "{{ zsh_starship_path_absolute }}"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    mode: u=rwx,g=rwx,o=rx
+    state: directory
+  when: not zsh_shared
+
+- name: Download starship tarball
+  become: yes
+  get_url:
+    url: "{{ zsh_starship_url }}"
+    dest: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    mode: '0644'
+  when: zsh_starship_need_install
+
+- name: Extract starship to {{ zsh_starship_path_absolute }}
+  become: yes
+  unarchive:
+    src: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    dest: "{{ zsh_starship_path_absolute }}"
+    remote_src: yes
+  when: zsh_starship_need_install
+
+- name: Remove starship tarball
+  become: yes
+  file:
+    path: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    state: absent
+  when: zsh_starship_need_install
