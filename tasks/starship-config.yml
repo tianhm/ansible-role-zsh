@@ -1,0 +1,38 @@
+---
+# Render the starship.toml config (used when zsh_theme == 'starship').
+# Split from starship.yml so it runs under the `configure` tag like the rest of
+# the role's config (configure.yml), while the binary install stays on `install`.
+# Managed only when zsh_starship_manage_config.
+
+- name: Ensure ~/.config directory is present
+  become: yes
+  become_user: "{{ zsh_user }}"
+  file:
+    path: "~{{ zsh_user }}/.config"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    mode: u=rwx,g=rx,o=rx
+    state: directory
+  when: zsh_starship_manage_config
+
+- name: Write generated starship.toml preset
+  become: yes
+  become_user: "{{ zsh_user }}"
+  template:
+    src: starship.toml.j2
+    dest: "~{{ zsh_user }}/.config/starship.toml"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    backup: yes
+  when: zsh_starship_manage_config and not zsh_starship_config
+
+- name: Write verbatim starship.toml override
+  become: yes
+  become_user: "{{ zsh_user }}"
+  copy:
+    content: "{{ zsh_starship_config }}"
+    dest: "~{{ zsh_user }}/.config/starship.toml"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    backup: yes
+  when: zsh_starship_manage_config and zsh_starship_config

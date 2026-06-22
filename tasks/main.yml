@@ -16,6 +16,12 @@
     - zsh
     - configure
 
+- include_tasks: starship-config.yml
+  tags:
+    - zsh
+    - configure
+  when: zsh_theme == 'starship'
+
 - include_tasks: post-install.yml
   tags:
     - zsh
