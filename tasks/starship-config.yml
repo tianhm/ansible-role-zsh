@@ -15,11 +15,69 @@
     state: directory
   when: zsh_starship_manage_config
 
-- name: Write generated starship.toml preset
+# Generated preset path: render the preset to a staging file, then deep-merge the
+# optional user override file and inline override over it (precedence, low -> high:
+# generated preset -> user file -> inline var). The merge runs at provision time
+# because starship itself reads a single file and cannot merge configs.
+# The merge helper and staging files are kept (not deleted) so re-runs stay idempotent.
+
+- name: Install starship.toml merge helper
+  become: yes
+  become_user: "{{ zsh_user }}"
+  copy:
+    src: merge_starship_toml.py
+    dest: "~{{ zsh_user }}/.config/.starship-merge.py"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    mode: '0755'
+  when: zsh_starship_manage_config and not zsh_starship_config
+
+- name: Render generated starship.toml preset (staging)
   become: yes
   become_user: "{{ zsh_user }}"
   template:
     src: starship.toml.j2
+    dest: "~{{ zsh_user }}/.config/.starship.generated.toml"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+  when: zsh_starship_manage_config and not zsh_starship_config
+
+- name: Check for user starship override file
+  become: yes
+  become_user: "{{ zsh_user }}"
+  stat:
+    path: "{{ zsh_starship_config_user_file }}"
+  register: zsh_starship_user_file_stat
+  when: zsh_starship_manage_config and not zsh_starship_config and zsh_starship_config_user_file | length > 0
+
+- name: Stage inline starship override
+  become: yes
+  become_user: "{{ zsh_user }}"
+  copy:
+    content: "{{ zsh_starship_config_user }}"
+    dest: "~{{ zsh_user }}/.config/.starship.user-inline.toml"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+  when: zsh_starship_manage_config and not zsh_starship_config and zsh_starship_config_user | length > 0
+
+- name: Deep-merge starship config (preset + user file + inline override)
+  become: yes
+  become_user: "{{ zsh_user }}"
+  shell: >-
+    python3 ~/.config/.starship-merge.py
+    ~/.config/.starship.generated.toml
+    {% if zsh_starship_user_file_stat.stat.exists | default(false) %} {{ zsh_starship_config_user_file }}{% endif %}
+    {% if zsh_starship_config_user | length > 0 %} ~/.config/.starship.user-inline.toml{% endif %}
+  register: zsh_starship_merged
+  changed_when: false
+  check_mode: no
+  when: zsh_starship_manage_config and not zsh_starship_config
+
+- name: Write merged starship.toml
+  become: yes
+  become_user: "{{ zsh_user }}"
+  copy:
+    content: "{{ zsh_starship_merged.stdout }}\n"
     dest: "~{{ zsh_user }}/.config/starship.toml"
     owner: "{{ zsh_user }}"
     group: "{{ zsh_user_group }}"

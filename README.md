@@ -72,7 +72,48 @@ starship-related variables:
 | `zsh_starship_version` | `"1.23.0"` | Pinned starship binary version to install. |
 | `zsh_starship_path` | `"$HOME/bin"` | Install directory for the starship binary (already on PATH; `/usr/local/bin` when `zsh_shared`). |
 | `zsh_starship_manage_config` | `yes` | Render and manage `~/.config/starship.toml` (and export `STARSHIP_CONFIG`). Set `no` to leave the config alone. |
-| `zsh_starship_config` | `""` | Raw verbatim `starship.toml` content. When set, it is written as-is instead of the generated preset. |
+| `zsh_starship_config` | `""` | Raw verbatim `starship.toml` content. When set, it is written as-is instead of the generated preset (and no merge happens). |
+| `zsh_starship_config_user_file` | `~<user>/.config/starship.user.toml` | User-editable override file. If present, its keys are deep-merged **over** the generated preset, so you can tweak a few settings while keeping the rest. |
+| `zsh_starship_config_user` | `""` | Inline `starship.toml` override string. Merged **last**, so it beats both the generated preset and the user file. |
+
+### Customizing the generated config
+
+Starship reads a single config file and has no include/merge mechanism of its own, so the role
+deep-merges your overrides into the generated preset **at provision time** and writes the result to
+`~/.config/starship.toml`. You only specify the keys you want to change — everything else stays as
+the generated preset.
+
+Override precedence (low → high):
+
+```
+generated preset  →  zsh_starship_config_user_file  →  zsh_starship_config_user
+```
+
+A table you override is merged key-by-key (your keys win); a scalar or array replaces the generated
+value outright. To override a whole prompt without merging, use `zsh_starship_config` instead — it is
+written verbatim and bypasses the merge entirely.
+
+Example — keep the generated prompt but change the right side and restyle the command-duration
+segment (as an inline override in host/group vars):
+
+```yaml
+zsh_starship_config_user: |
+  right_format = "$status$cmd_duration$time"
+
+  [cmd_duration]
+  style = "fg:green"
+```
+
+The same content can instead live in a host-side file (default `~/.config/starship.user.toml`) that
+users edit directly; it is merged on every run if present. If both are set, the inline
+`zsh_starship_config_user` wins over the file.
+
+Requirements/notes for the merge:
+
+- Needs Python 3.11+ on the managed host (uses the stdlib `tomllib`); no extra pip/collection deps.
+- The merged file is re-serialized, so the generated header comment is dropped and strings are
+  normalized (single → double quotes, inline tables expanded to `[table.subtable]`). The result is
+  equivalent, valid TOML.
 
 Note: like powerlevel10k, starship needs a [Nerd Font](https://www.nerdfonts.com/) installed in your terminal
 to render the prompt icons/glyphs correctly.

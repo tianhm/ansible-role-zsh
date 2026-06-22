@@ -6,6 +6,13 @@ export TERM="{{ zsh_term }}"
 {% if zsh_editor %}export EDITOR="{{ zsh_editor }}"
 {% endif %}export PATH="$PATH:{{ zsh_path | join(":") }}"
 
+# UTF-8 locale: without it zsh runs in the C/POSIX locale and counts the raw
+# bytes of multibyte glyphs (emoji, …, ✘) instead of their display width,
+# which shifts/corrupts the starship prompt on redraw. C.UTF-8 needs no
+# locale-gen and is always available.
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+
 {% if zsh_theme == 'powerlevel10k' and zsh_powerlevel10k_instant_prompt %}
 # user configs
 [[ -r "$HOME/.zshrc.local.pre-p10k" ]] && source "$HOME/.zshrc.local.pre-p10k"

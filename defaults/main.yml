@@ -32,7 +32,7 @@ fzf_widgets: viasite-ansible/fzf-widgets # fork of sorenson-axial/fzf-widgets
 zsh_antigen_repo: https://github.com/viasite-ansible/antigen
 zsh_antigen_version: patch-1
 
-zsh_fzf_version: 0.68.0
+zsh_fzf_version: 0.73.1
 
 zsh_antigen_bundles:
   - { name: command-not-found, when: "{{ ansible_os_family != 'Darwin' }}" } # too slow on OSX
@@ -89,6 +89,9 @@ zsh_starship_version: "1.23.0"
 zsh_starship_path: "$HOME/bin"
 zsh_starship_manage_config: yes
 zsh_starship_config: "" # raw verbatim starship.toml override; empty = use generated preset
+zsh_starship_config_user_file: "~{{ zsh_user }}/.config/starship.user.toml" # user-editable override file; deep-merged over the generated preset if present
+zsh_starship_config_user: "" # inline TOML override string; highest priority, merged last (beats the user file)
+zsh_hide_username: # username to hide in the prompt (aliased to ''); unset = show username
 
 zsh_hotkeys:
   # home & end keys work
@@ -178,6 +181,7 @@ zsh_powerlevel9k_left_prompt:
 
 zsh_powerlevel9k_right_prompt:
   - status
+  - virtualenv
   - background_jobs
   - vcs
   - command_execution_time
