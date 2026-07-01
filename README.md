@@ -7,17 +7,20 @@ Tested long time ago: Ubuntu 18.04, MacOS 10.12, CentOS 8
 
 
 ## Zero-knowledge install:
-If you are using Ubuntu or Debian and not familiar with Ansible, you can just execute [install.sh](install.sh) on target machine:
+If you are not familiar with Ansible, you can just execute [install.sh](install.sh) on the target machine. It detects the OS (Ubuntu/Debian or macOS), installs Ansible, and sets up zsh for the current user:
 ```
 curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.sh | bash
 ```
-It will install pip3, ansible and setup zsh for root and current user.
 
-## MacOS zero-knowledge install:
-Requirements: brew, python. Asks user's password. [install-macos.sh](install-macos.sh) will install ansible, and setup zsh for current user and optionally for root:
-```
-curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install-macos.sh | bash
-```
+- **Ubuntu/Debian**: installs pip3, Ansible (into `~/ansible-venv`) and zsh.
+- **macOS**: requires `brew` and `python`; installs Ansible via brew and zsh.
+- It runs non-interactively when possible — you are only asked for a password if `sudo` is not passwordless.
+- To also provision the **root** user, set `ZSH_INSTALL_ROOT=1`:
+  ```
+  curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.sh | ZSH_INSTALL_ROOT=1 bash
+  ```
+
+> The previous `install-macos.sh` URL still works — it now forwards to `install.sh`.
 
 Then [configure terminal application](#configure-terminal-application).
 

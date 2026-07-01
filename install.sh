@@ -2,29 +2,61 @@
 set -eu
 
 title() {
-    local color='\033[1;37m'
-    local nc='\033[0m'
-    printf "\n${color}$1${nc}\n"
+    printf "\n\033[1;37m%s\033[0m\n" "$1"
 }
 
-title "Install pip and Ansible"
-sudo apt update
-sudo apt install python3-venv python3-pip -y
-python3 -m venv ~/ansible-venv
-source ~/ansible-venv/bin/activate
-pip install ansible
+os="$(uname -s)"
 
-title "Install viasite-ansible.zsh"
-ansible-galaxy install viasite-ansible.zsh --force
+title "Install Ansible"
+case "$os" in
+    Darwin)
+        brew install ansible
+        ;;
+    Linux)
+        sudo apt update
+        sudo apt install python3-venv python3-pip -y
+        python3 -m venv ~/ansible-venv
+        # shellcheck disable=SC1090,SC1091
+        source ~/ansible-venv/bin/activate
+        pip install ansible
+        ;;
+    *)
+        echo "Unsupported OS: $os" >&2
+        exit 1
+        ;;
+esac
 
-title "Download playbook to /tmp/zsh.yml"
-curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/playbook.yml > /tmp/zsh.yml
+# When run from a checkout (CI / development) use this repo as the role,
+# otherwise (curl | bash) pull the published role and playbook.
+if [ -f ./playbook.yml ] && [ -f ./meta/main.yml ]; then
+    title "Use local role checkout"
+    roles_dir="$(mktemp -d)"
+    ln -sfn "$PWD" "$roles_dir/viasite-ansible.zsh"
+    export ANSIBLE_ROLES_PATH="$roles_dir"
+    playbook=./playbook.yml
+else
+    title "Install viasite-ansible.zsh"
+    ansible-galaxy install viasite-ansible.zsh --force
 
-title "Provision playbook for root"
-ansible-playbook -i "localhost," -c local -b /tmp/zsh.yml
+    title "Download playbook to /tmp/zsh.yml"
+    curl -fsSL https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/playbook.yml > /tmp/zsh.yml
+    playbook=/tmp/zsh.yml
+fi
+
+# Avoid interactive prompts: only ask for the become password when sudo is not passwordless.
+become=(-b)
+if ! sudo -n true 2>/dev/null; then
+    become=(-b -K)
+fi
 
 title "Provision playbook for $(whoami)"
-ansible-playbook -i "localhost," -c local -b /tmp/zsh.yml --extra-vars="zsh_user=$(whoami)"
+ansible-playbook -i "localhost," -c local "${become[@]}" "$playbook" --extra-vars="zsh_user=$(whoami)"
+
+# Set ZSH_INSTALL_ROOT=1 to also provision the root user.
+if [ "${ZSH_INSTALL_ROOT:-0}" = "1" ]; then
+    title "Provision playbook for root"
+    ansible-playbook -i "localhost," -c local "${become[@]}" "$playbook"
+fi
 
 title "Finished! Please, restart your shell."
 echo ""
