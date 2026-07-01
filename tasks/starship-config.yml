@@ -93,4 +93,4 @@
     owner: "{{ zsh_user }}"
     group: "{{ zsh_user_group }}"
     backup: yes
-  when: zsh_starship_manage_config and zsh_starship_config
+  when: zsh_starship_manage_config and zsh_starship_config | length > 0
