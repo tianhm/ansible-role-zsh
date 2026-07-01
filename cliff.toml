@@ -1,0 +1,52 @@
+# git-cliff configuration ~ https://git-cliff.org/docs/configuration
+[changelog]
+header = """# Changelog
+
+All notable changes to this project are documented in this file.
+"""
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}](https://github.com/viasite-ansible/ansible-role-zsh/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}\
+{% if commit.breaking %} **[BREAKING]**{% endif %} \
+([{{ commit.id | truncate(length=7, end="") }}](https://github.com/viasite-ansible/ansible-role-zsh/commit/{{ commit.id }}))
+{%- endfor %}
+{% endfor %}
+"""
+footer = ""
+# trim=false preserves the leading newline in `body`, giving a blank line
+# between release sections in the assembled changelog.
+trim = false
+# Strip the HTML-comment prefixes that force group display order.
+postprocessors = [
+    { pattern = '<!-- [0-9] -->', replace = "" },
+]
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+# group_by sorts alphabetically, so <!-- N --> prefixes control display order.
+commit_parsers = [
+    { message = "^feat", group = "<!-- 0 -->Features" },
+    { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+    { message = "^doc", group = "<!-- 2 -->Documentation" },
+    { message = "^perf", group = "<!-- 3 -->Performance" },
+    { message = "^refactor", group = "<!-- 4 -->Refactor" },
+    { message = "^test", group = "<!-- 5 -->Testing" },
+    { message = "^build", group = "<!-- 6 -->Build" },
+    { message = "^ci", group = "<!-- 7 -->CI" },
+    { message = "^chore\\(release\\)", skip = true },
+    { message = "^chore|^task|^style", group = "<!-- 8 -->Miscellaneous" },
+    { message = "^wip", skip = true },
+    { message = "^Bump version", skip = true },
+]
+filter_commits = false
+tag_pattern = "v[0-9].*"
+sort_commits = "newest"
