@@ -1,10 +1,12 @@
-Tested on Ubuntu 20.04, Ubuntu 22.04, Ubuntu 24.04, MacOS 14.4.
+Tested on Ubuntu 20.04, Ubuntu 22.04, Ubuntu 24.04, MacOS 26.
 
-Tested long time ago: Ubuntu 18.04, MacOS 10.12, CentOS 8
+Tested long time ago: Ubuntu 18.04, MacOS 14.4, MacOS 10.12, CentOS 8
 
-**For upgrade from viasite-ansible.zsh 1.x, 2.x to 3.0 see [below](#upgrade).**
+## 1.5 mins demo
+![1.5 mins demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-demo.gif?raw=true)
 
-
+## Color schemes
+![colors demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-colors.gif?raw=true)
 
 ## Zero-knowledge install:
 If you are not familiar with Ansible, you can just execute [install.sh](install.sh) on the target machine. It detects the OS (Ubuntu/Debian or macOS), installs Ansible, and sets up zsh for the current user:
@@ -29,8 +31,8 @@ Then [configure terminal application](#configure-terminal-application).
 - zsh
 - [antigen](https://github.com/zsh-users/antigen)
 - [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
-- [powerlevel9k/powerlevel10k theme](https://github.com/romkatv/powerlevel10k) (default prompt)
-- [starship prompt](https://starship.rs/) (optional, via `zsh_theme: starship`)
+- [starship prompt](https://starship.rs/) (default prompt)
+- [powerlevel9k/powerlevel10k theme](https://github.com/romkatv/powerlevel10k) (optional, via `zsh_theme: powerlevel10k`)
 - [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
 - [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
 - [unixorn/autoupdate-antigen.zshplugin](https://github.com/unixorn/autoupdate-antigen.zshplugin)
@@ -38,7 +40,7 @@ Then [configure terminal application](#configure-terminal-application).
 - [urbainvaes/fzf-marks](https://github.com/popstas/urbainvaes/fzf-marks)
 
 ## Features
-- selectable prompt theme: powerlevel10k (default) or starship (see [Prompt theme](#prompt-theme))
+- selectable prompt theme: starship (default) or powerlevel10k (see [Prompt theme](#prompt-theme))
 - customize powerlevel9k theme prompt segments and colors
 - default colors tested with solarized dark and default grey terminal in putty
 - add custom prompt elements from yml
@@ -49,16 +51,15 @@ Then [configure terminal application](#configure-terminal-application).
 ## Prompt theme
 The role supports two selectable prompt themes via the `zsh_theme` variable:
 
-- `powerlevel10k` (**default**) — the classic antigen-bundled [powerlevel10k](https://github.com/romkatv/powerlevel10k) prompt.
-- `starship` — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
+- `starship` (**default**) — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
+- `powerlevel10k` — the classic antigen-bundled [powerlevel10k](https://github.com/romkatv/powerlevel10k) prompt.
 
-The default stays `powerlevel10k`, so existing deployments are unaffected (fully backward compatible — with default vars the rendered `.zshrc` is unchanged).
-
-To switch to starship:
+The default is `starship`. If you were relying on the previous `powerlevel10k` default,
+set `zsh_theme: powerlevel10k` to keep the old prompt:
 ``` yaml
 - hosts: all
   vars:
-    zsh_theme: starship
+    zsh_theme: powerlevel10k
   roles:
     - viasite-ansible.zsh
 ```
@@ -71,7 +72,7 @@ starship-related variables:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `zsh_theme` | `powerlevel10k` | Prompt theme: `powerlevel10k` or `starship`. |
+| `zsh_theme` | `starship` | Prompt theme: `starship` or `powerlevel10k`. |
 | `zsh_starship_version` | `"1.23.0"` | Pinned starship binary version to install. |
 | `zsh_starship_path` | `"$HOME/bin"` | Install directory for the starship binary (already on PATH; `/usr/local/bin` when `zsh_shared`). |
 | `zsh_starship_manage_config` | `yes` | Render and manage `~/.config/starship.toml` (and export `STARSHIP_CONFIG`). Set `no` to leave the config alone. |
@@ -120,12 +121,6 @@ Requirements/notes for the merge:
 
 Note: like powerlevel10k, starship needs a [Nerd Font](https://www.nerdfonts.com/) installed in your terminal
 to render the prompt icons/glyphs correctly.
-
-## 1.5 mins demo
-![1.5 mins demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-demo.gif?raw=true)
-
-## Color schemes
-![colors demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-colors.gif?raw=true)
 
 ## Midnight Commander Solarized Dark skin
 If you are using Solarized Dark scheme and `mc`, you should want to install skin, then set `zsh_mc_solarized_skin: yes`
@@ -370,25 +365,6 @@ You can add any code in variable `zsh_custom_before`, `zsh_custom_after`.
 
 - zsh_custom_before - before include antigen.zsh
 - zsh_custom_after - before include ~/.zshrc.local
-
-## Upgrade
-viasite-ansible.zsh v3.0 introduces antigen v2.0, it don't have backward compatibility to antigen 1.x.
-
-I don't spent much time for smooth upgrade, therefore you probably should do some manual actions:
-if powerlevel9k prompt don't loaded after provision role, you should execute `antigen reset`.
-
-After reopen shell all should be done.
-
-### Downgrade to antigen v1
-Antigen v2 much faster (up to 2x more faster startup), but if something went wrong, you can downgrade to antigen v1,
-see note for zsh 4.3 users below.
-
-### For users with zsh 4.x
-Antigen v2 not work on zsh < 5.0, if you use zsh 4.x, please add to you playbook:
-``` yaml
-zsh_antigen_version: v1.4.1
-```
-
 
 ## Known bugs
 ### `su username` caused errors

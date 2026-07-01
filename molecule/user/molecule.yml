@@ -17,3 +17,4 @@ provisioner:
     group_vars:
       all:
         zsh_user: testuser
+        zsh_theme: powerlevel10k

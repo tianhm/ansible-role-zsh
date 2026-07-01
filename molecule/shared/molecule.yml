@@ -17,3 +17,4 @@ provisioner:
     group_vars:
       all:
         zsh_shared: yes
+        zsh_theme: powerlevel10k

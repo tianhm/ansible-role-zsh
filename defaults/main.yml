@@ -80,7 +80,7 @@ zsh_source_for_all_users: no
 zsh_change_user_shell: yes
 
 # prompt theme selector, valid values: powerlevel10k, starship
-zsh_theme: powerlevel10k
+zsh_theme: starship
 
 zsh_antigen_theme: "romkatv/powerlevel10k powerlevel10k"
 
