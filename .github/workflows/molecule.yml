@@ -1,0 +1,43 @@
+---
+name: molecule
+
+"on":
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  molecule:
+    name: "molecule: ${{ matrix.scenario }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - default
+          - shared
+          - user
+          - starship
+
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install molecule "molecule-plugins[docker]" docker ansible-core pytest pytest-testinfra
+          ansible-galaxy collection install community.docker ansible.posix
+
+      - name: Run Molecule scenario
+        run: molecule test -s "${{ matrix.scenario }}"
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"

@@ -1,5 +1,7 @@
 ---
 galaxy_info:
+  role_name: zsh
+  namespace: viasite
   author: Stanislav Popov
   company: Viasite
   description: oh-my-zsh with selectable powerlevel10k or starship prompt, fzf and other plugins
