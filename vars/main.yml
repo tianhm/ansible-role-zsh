@@ -1,21 +1,21 @@
 ---
-zsh_user_group: "{% if ansible_os_family == 'Darwin' %}staff{% else %}{{ zsh_user }}{% endif %}"
+zsh_user_group: "{% if ansible_facts['os_family'] == 'Darwin' %}staff{% else %}{{ zsh_user }}{% endif %}"
 zsh_antigen_path: "{% if zsh_shared %}/usr/share/zsh-config{% else %}~{{ zsh_user }}/.antigen{% endif %}"
 zsh_config: "{% if zsh_shared %}/usr/share/zsh-config/.zshrc{% else %}~{{ zsh_user }}/.zshrc{% endif %}"
 zsh_antigen_path_compat: "{{ zsh_antigen_path | replace('~' + zsh_user, '$HOME') }}"
 
 zsh_fzf_os: linux
-zsh_fd_command: "{% if ansible_os_family == 'Debian' %}fdfind{% else %}fd{% endif %}"
+zsh_fd_command: "{% if ansible_facts['os_family'] == 'Debian' %}fdfind{% else %}fd{% endif %}"
 zsh_fd_binary: "{{ zsh_fd_command }}"
-zsh_fzf_arch: "{% if 'aarch64' in ansible_architecture %}armv7{% elif 'arm' in ansible_architecture %}arm64{% elif '64' in ansible_architecture %}amd64{% elif 'armv7' in ansible_architecture %}armv7{% else %}386{% endif %}"
+zsh_fzf_arch: "{% if 'aarch64' in ansible_facts['architecture'] %}armv7{% elif 'arm' in ansible_facts['architecture'] %}arm64{% elif '64' in ansible_facts['architecture'] %}amd64{% elif 'armv7' in ansible_facts['architecture'] %}armv7{% else %}386{% endif %}"
 zsh_fzf_url: "https://github.com/junegunn/fzf/releases/download/v{{ zsh_fzf_version }}/fzf-{{ zsh_fzf_version }}-{{ zsh_fzf_os }}_{{ zsh_fzf_arch }}.tar.gz"
 zsh_antigen_fzf_path: "{{ zsh_antigen_path }}/repos/https-COLON--SLASH--SLASH-github.com-SLASH-junegunn-SLASH-fzf.git"
 zsh_fzf_default_opts: "--height {{ zsh_fzf_height }}{% if zsh_fzf_reverse %} --reverse{% endif %}{% if zsh_fzf_border %} --border{% endif %}"
 
 # starship
 zsh_starship_path_absolute: "{{ zsh_starship_path | replace('$HOME', '~' + zsh_user) }}"
-zsh_starship_arch: "{% if 'aarch64' in ansible_architecture or 'arm64' in ansible_architecture %}aarch64{% else %}x86_64{% endif %}"
-zsh_starship_os_target: "{% if ansible_os_family == 'Darwin' %}apple-darwin{% else %}unknown-linux-musl{% endif %}"
+zsh_starship_arch: "{% if 'aarch64' in ansible_facts['architecture'] or 'arm64' in ansible_facts['architecture'] %}aarch64{% else %}x86_64{% endif %}"
+zsh_starship_os_target: "{% if ansible_facts['os_family'] == 'Darwin' %}apple-darwin{% else %}unknown-linux-musl{% endif %}"
 zsh_starship_url: "https://github.com/starship/starship/releases/download/v{{ zsh_starship_version }}/starship-{{ zsh_starship_arch }}-{{ zsh_starship_os_target }}.tar.gz"
 
 zsh_powerlevel9k_prompt_on_newline_bool: "{% if zsh_powerlevel9k_prompt_on_newline %}true{% else %}false{% endif %}"

@@ -1,6 +1,6 @@
 ---
 
-zsh_user: "{{ ansible_user_id }}"
+zsh_user: "{{ ansible_facts['user_id'] }}"
 
 # .zshrc config
 zsh_hist_stamps: yyyy-mm-dd
@@ -35,8 +35,8 @@ zsh_antigen_version: patch-1
 zsh_fzf_version: 0.73.1
 
 zsh_antigen_bundles:
-  - { name: command-not-found, when: "{{ ansible_os_family != 'Darwin' }}" } # too slow on OSX
-  - { name: brew, when: "{{ ansible_os_family == 'Darwin' }}" }
+  - { name: command-not-found, when: "{{ ansible_facts['os_family'] != 'Darwin' }}" } # too slow on OSX
+  - { name: brew, when: "{{ ansible_facts['os_family'] == 'Darwin' }}" }
   - { name: docker, command: docker }
   - { name: docker-compose, command: docker-compose }
   - { name: docker-compose, command: docker compose }

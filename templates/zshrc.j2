@@ -45,7 +45,7 @@ ANTIGEN_SYSTEM_UPDATE_DAYS="{{ zsh_update_interval }}"
 {% if zsh_custom_before %}# Custom configs zsh_custom_before
 {{ zsh_custom_before }}{% endif %}
 
-{% if ansible_os_family == 'Debian' %}
+{% if ansible_facts['os_family'] == 'Debian' %}
 alias fd={{ zsh_fd_binary }} # for correct working of sorenson-axial/fzf-widgets
 {% endif %}
 
