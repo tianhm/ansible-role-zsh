@@ -71,7 +71,7 @@ antigen use oh-my-zsh
             {% endfor -%}
         {% endif -%}
 
-        {% if valid and not command_not_exists %}
+        {% if valid and not command_not_exists and bundle.name not in bundles_enabled %}
             {%- if 'zsh-syntax-highlighting' in bundle.name or 'fast-syntax-highlighting' in bundle.name -%}
 # will fixed in zsh-autosuggestion v0.4 - https://github.com/zsh-users/zsh-autosuggestions/pull/218
 if (( ZSHRC_LOAD_ONCE++ == 0 )); then
