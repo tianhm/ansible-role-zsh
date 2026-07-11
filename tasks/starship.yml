@@ -54,10 +54,10 @@
 
 - name: Extract starship to {{ zsh_starship_path_absolute }}
   become: yes
-  unarchive:
-    src: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
-    dest: "{{ zsh_starship_path_absolute }}"
-    remote_src: yes
+  # `tar` directly instead of the unarchive module: macOS ships BSD tar, which
+  # unarchive refuses ("GNU tar required"), yet BSD tar unpacks .tar.gz fine.
+  # shell (not command) so a "~user/bin" install path is tilde-expanded.
+  shell: "tar -xzf /tmp/starship-{{ zsh_starship_version }}.tar.gz -C {{ zsh_starship_path_absolute }} starship"
   when: zsh_starship_need_install
 
 - name: Remove starship tarball
