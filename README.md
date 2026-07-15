@@ -42,7 +42,7 @@ Then [configure terminal application](#configure-terminal-application).
 ## Features
 - selectable prompt theme: starship (default) or powerlevel10k (see [Prompt theme](#prompt-theme))
 - customize powerlevel9k theme prompt segments and colors
-- default colors tested with solarized dark and default grey terminal in putty
+- default colors tested with solarized dark and default grey terminal
 - add custom prompt elements from yml
 - custom zsh config with `~/.zshrc.local` or `/etc/zshrc.local`
 - load `/etc/profile.d` scripts
@@ -51,10 +51,11 @@ Then [configure terminal application](#configure-terminal-application).
 ## Prompt theme
 The role supports two selectable prompt themes via the `zsh_theme` variable:
 
-- `starship` (**default**) — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
+- `starship` (**default since v4**) — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
 - `powerlevel10k` — the classic antigen-bundled [powerlevel10k](https://github.com/romkatv/powerlevel10k) prompt.
 
-The default is `starship`. If you were relying on the previous `powerlevel10k` default,
+Starting with v4 the default is `starship` (earlier versions defaulted to `powerlevel10k`).
+If you were relying on the previous `powerlevel10k` default,
 set `zsh_theme: powerlevel10k` to keep the old prompt:
 ``` yaml
 - hosts: all
@@ -126,34 +127,10 @@ to render the prompt icons/glyphs correctly.
 If you are using Solarized Dark scheme and `mc`, you should want to install skin, then set `zsh_mc_solarized_skin: yes`
 
 
-## Demo install in Vagrant
-You can test work of role before install in real machine.
-Just execute `vagrant up`, then `vagrant ssh` for enter in virtual machine.
+## Testing
 
-Note: you cannot install vagrant on VPS like Digital Ocean or in Docker. Use local machine for it.
-[Download](https://www.vagrantup.com/downloads.html) and install vagrant for your operating system.
-
-
-
-## Testing with Molecule
-
-The role ships [Molecule](https://ansible.readthedocs.io/projects/molecule/) scenarios
-(`default`, `shared`, `user`, `starship`) that converge the role in Docker and verify
-the result. They require Docker and Python 3.
-
-```bash
-# one-time setup
-python3 -m venv .venv
-.venv/bin/pip install molecule "molecule-plugins[docker]" docker ansible-core pytest pytest-testinfra
-.venv/bin/ansible-galaxy collection install community.docker ansible.posix
-
-# run a scenario (activate the venv so the testinfra verifier finds pytest)
-source .venv/bin/activate
-molecule test -s default    # also: shared, user, starship
-```
-
-Note: the venv must be activated (or `.venv/bin` on `PATH`) — the `default`
-scenario's testinfra verifier shells out to `pytest` by name.
+The role is tested with [Molecule](https://ansible.readthedocs.io/projects/molecule/).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to run the test scenarios.
 
 
 
@@ -162,13 +139,16 @@ Zero-knowledge install: see [above](#zero-knowledge-install).
 
 ### Manual install
 
-0. [Install Ansible](http://docs.ansible.com/ansible/intro_installation.html).
+0. [Install Ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html).
 For Ubuntu:
 ``` bash
 sudo apt update
-sudo apt install python3-pip -y
-sudo pip3 install ansible
+sudo apt install python3-venv python3-pip -y
+python3 -m venv ~/ansible-venv
+source ~/ansible-venv/bin/activate
+pip install ansible
 ```
+For macOS: `brew install ansible`.
 
 1. Download role:
 ```
@@ -253,25 +233,11 @@ Add your custom config to `~/.zshrc.local` (per user) or `/etc/zshrc.local` (glo
 
 
 ### Configure terminal application
-1. Download [powerline fonts](https://github.com/powerline/fonts), install font that you prefer.
-You can see screenshots [here](https://github.com/powerline/fonts/blob/master/samples/All.md).
+1. Download and install a [Nerd Font](https://www.nerdfonts.com/) of your choice, then
+select it in your terminal. Both starship and powerlevel10k need a Nerd Font to render
+the prompt icons/glyphs correctly.
 
-2. Set color scheme.
-
-Personaly, I prefer Solarized Dark color sceme, Droid Sans Mono for Powerline in iTerm and DejaVu Sans Mono in Putty.
-
-#### iTerm
-Profiles - Text - Change Font - select font "for Powerline"
-
-Profiles - Colors - Color Presets... - select Solarized Dark
-
-#### Putty
-Settings - Window - Appearance - Font settings
-
-You can download [Solarized Dark for Putty](https://github.com/altercation/solarized/tree/master/putty-colors-solarized).
-
-#### Gnome Terminal
-gnome-terminal have built-in Solarized Dark, note that you should select both background color scheme and palette scheme.
+2. Set a color scheme. Personally, I prefer the Solarized Dark color scheme.
 
 
 
