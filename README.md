@@ -26,6 +26,56 @@ curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/i
 
 Then [configure terminal application](#configure-terminal-application).
 
+## Windows (PowerShell / cmd)
+
+zsh does not run in native Windows shells, so on Windows this repo installs the
+**portable** parts of the setup — the starship prompt plus a fzf / autosuggestion
+/ history experience — into PowerShell (and the starship prompt into `cmd.exe`
+via [clink](https://chrisant996.github.io/clink/)). It uses a standalone
+`install.ps1`; no Ansible, Python, or WSL.
+
+Requires a preinstalled package manager: **winget**, **scoop**, or **choco**.
+
+```powershell
+irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1 | iex
+```
+
+If your ExecutionPolicy blocks it, run PowerShell once as:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1 | iex"
+```
+
+To pass flags, download-and-invoke instead of piping:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1))) -NoCmd -NoPoshGit
+```
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `-NoCmd` | Skip clink install and cmd.exe prompt setup |
+| `-NoAutosuggestions` | Skip PSReadLine history predictions |
+| `-NoPSFzf` | Skip PSFzf (fzf `Ctrl+R` / `Ctrl+T`) |
+| `-NoPoshGit` | Skip posh-git |
+| `-Force` | Overwrite an existing `~/.config/starship.toml` |
+| `-PackageManager <winget\|scoop\|choco>` | Force a specific manager |
+
+### What maps over
+
+| zsh feature | Windows equivalent |
+|---|---|
+| starship prompt | starship (PowerShell + cmd via clink) |
+| zsh-autosuggestions | PSReadLine `-PredictionSource History` |
+| fast-syntax-highlighting | PSReadLine built-in token coloring |
+| fzf widgets / `Ctrl+R` | fzf + PSFzf |
+| git/docker/kubectl completions | posh-git + native completers |
+| ~25 antigen completion bundles | not ported (PowerShell has its own completion model) |
+
+The Windows starship prompt is generated from the same template as the
+Linux/macOS default (`windows/starship.toml`, kept in sync by CI).
 
 ## Includes:
 - zsh
