@@ -110,3 +110,26 @@ Describe 'Set-ZshManagedBlock' {
         $r | Should -Match ([regex]::Escape('$1 and $$ and $& literal'))
     }
 }
+
+Describe 'Get-ZshModuleAvailability' {
+    It 'reports ListView available for PSReadLine >= 2.2' {
+        Mock Get-Module {
+            [pscustomobject]@{ Name = 'PSReadLine'; Version = [version]'2.3.4' }
+        } -ParameterFilter { $Name -eq 'PSReadLine' }
+        Mock Get-Module { $null } -ParameterFilter { $Name -in @('PSFzf', 'posh-git') }
+        $a = Get-ZshModuleAvailability
+        $a.PSReadLinePrediction | Should -BeTrue
+        $a.PSReadLineListView   | Should -BeTrue
+        $a.PSFzf                | Should -BeFalse
+    }
+
+    It 'reports prediction but not ListView for PSReadLine 2.1.x' {
+        Mock Get-Module {
+            [pscustomobject]@{ Name = 'PSReadLine'; Version = [version]'2.1.0' }
+        } -ParameterFilter { $Name -eq 'PSReadLine' }
+        Mock Get-Module { $null } -ParameterFilter { $Name -in @('PSFzf', 'posh-git') }
+        $a = Get-ZshModuleAvailability
+        $a.PSReadLinePrediction | Should -BeTrue
+        $a.PSReadLineListView   | Should -BeFalse
+    }
+}
