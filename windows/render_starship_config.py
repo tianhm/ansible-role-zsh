@@ -30,7 +30,11 @@ def render() -> str:
         "true" if defaults["zsh_powerlevel9k_always_show_user"] else "false"
     )
     template_text = (ROLE_ROOT / "templates" / "starship.toml.j2").read_text()
-    env = Environment(undefined=StrictUndefined, keep_trailing_newline=True)
+    env = Environment(
+        undefined=StrictUndefined,
+        keep_trailing_newline=True,
+        trim_blocks=True,
+    )
     return env.from_string(template_text).render(**ctx)
 
 

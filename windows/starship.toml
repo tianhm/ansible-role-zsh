@@ -4,7 +4,6 @@
 
 # Generated starship preset reproducing the role's powerlevel9k prompt layout.
 # Colors/behavior are driven by the existing zsh_powerlevel9k_* role variables.
-
 # add_newline = false
 
 format = "$username$hostname$directory"
@@ -16,10 +15,8 @@ style_user = "fg:255 bg:024"
 style_root = "fg:255 bg:124"
 format = "[ ($user@)]($style)"
 
-
 [hostname]
 ssh_only = true
-
 style = "fg:255 bg:024"
 format = "[$hostname ]($style)"
 
