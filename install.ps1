@@ -214,28 +214,26 @@ function Write-ZshClinkFzf {
     $lua = @'
 -- viasite-ansible zsh: bind Ctrl+R to fzf over clink command history.
 -- Self-contained (no third-party clink-fzf). Requires fzf on PATH.
-
-local function history_file()
-    local la = os.getenv("LOCALAPPDATA") or ""
-    return la .. "\\clink\\clink_history"
-end
+-- Mirrors the clink-fzf mechanism: get history from the running clink session
+-- (not a guessed file), pipe to fzf, strip the leading index from the choice.
 
 local function fzf_history(rl_buffer)
-    local histfile = history_file()
-    local test = io.open(histfile, "r")
-    if not test then rl_buffer:refreshline(); return end
-    test:close()
+    if not (clink and clink.getsession) then rl_buffer:refreshline(); return end
+    local session = clink.getsession()
+    if not session or session == "" then rl_buffer:refreshline(); return end
+    local history = 'clink --session '..session..' history --time-format " "'
     local query = (rl_buffer:getbuffer() or ""):gsub('"', "")
-    local cmd = string.format(
-        'type "%s" 2>nul | fzf --height 40%% --reverse --tac --no-sort --exact --query "%s"',
-        histfile, query)
+    local cmd = '2>nul '..history..' | fzf --height 40% --reverse --tac --no-sort --exact --query "'..query..'"'
     local p = io.popen(cmd)
-    local choice = p and p:read("*l") or nil
-    if p then p:close() end
-    if choice and choice ~= "" then
+    if not p then rl_buffer:refreshline(); return end
+    local str = p:read("*line")
+    p:close()
+    if str and str ~= "" then
+        str = str:gsub("[\r\n]+$", "")     -- drop trailing CR/LF
+        str = str:gsub("^%s*%d+%s+", "")   -- drop the leading history index
         rl_buffer:beginundogroup()
         rl_buffer:remove(0, -1)
-        rl_buffer:insert(choice)
+        rl_buffer:insert(str)
         rl_buffer:endundogroup()
     end
     rl_buffer:refreshline()
@@ -243,7 +241,7 @@ end
 
 _fzf_history = fzf_history
 if rl and rl.setbinding then
-    rl.setbinding("\\C-r", "luafunc:_fzf_history")
+    rl.setbinding([["\C-r"]], [["luafunc:_fzf_history"]])
 end
 '@
     [System.IO.File]::WriteAllText((Join-Path $clinkDir 'fzf-history.lua'), $lua + "`n")
