@@ -1,8 +1,9 @@
+BeforeAll {
+    $env:ZSH_INSTALL_NO_RUN = '1'
+    . "$PSScriptRoot/../install.ps1"
+}
+
 Describe 'Get-ZshPackageManager' {
-    BeforeAll {
-        $env:ZSH_INSTALL_NO_RUN = '1'
-        . "$PSScriptRoot/../install.ps1"
-    }
 
     It 'returns the first available manager in winget->scoop->choco order' {
         Mock Get-Command { $true } -ParameterFilter { $Name -eq 'scoop' }
@@ -30,5 +31,77 @@ Describe 'Get-ZshPackageManager' {
     It 'returns $null when -Prefer manager is not available' {
         Mock Get-Command { $null }
         Get-ZshPackageManager -Prefer 'choco' | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Resolve-ZshFeatures' {
+    BeforeEach {
+        $allAvail = @{ PSReadLinePrediction = $true; PSReadLineListView = $true; PSFzf = $true; PoshGit = $true }
+    }
+
+    It 'enables everything when no flags set and all available' {
+        $f = Resolve-ZshFeatures -Params @{} -Available $allAvail
+        $f.Autosuggestions   | Should -BeTrue
+        $f.PredictionListView| Should -BeTrue
+        $f.PSFzf             | Should -BeTrue
+        $f.PoshGit           | Should -BeTrue
+    }
+
+    It 'disables PSFzf when -NoPSFzf even if available' {
+        $f = Resolve-ZshFeatures -Params @{ NoPSFzf = $true } -Available $allAvail
+        $f.PSFzf | Should -BeFalse
+    }
+
+    It 'disables autosuggestions when PSReadLine prediction unavailable' {
+        $avail = @{ PSReadLinePrediction = $false; PSReadLineListView = $false; PSFzf = $true; PoshGit = $true }
+        $f = Resolve-ZshFeatures -Params @{} -Available $avail
+        $f.Autosuggestions    | Should -BeFalse
+        $f.PredictionListView | Should -BeFalse
+    }
+
+    It 'requires PSReadLine >= 2.2 for ListView' {
+        $avail = @{ PSReadLinePrediction = $true; PSReadLineListView = $false; PSFzf = $true; PoshGit = $true }
+        $f = Resolve-ZshFeatures -Params @{} -Available $avail
+        $f.Autosuggestions    | Should -BeTrue
+        $f.PredictionListView | Should -BeFalse
+    }
+}
+
+Describe 'Get-ZshProfileBody' {
+    It 'always includes the starship prompt init' {
+        Get-ZshProfileBody -Features @{} | Should -Match 'starship init powershell'
+    }
+    It 'includes PSFzf bindings only when enabled' {
+        (Get-ZshProfileBody -Features @{ PSFzf = $true })  | Should -Match 'PSFzf'
+        (Get-ZshProfileBody -Features @{ PSFzf = $false }) | Should -Not -Match 'PSFzf'
+    }
+    It 'includes ListView line only when PredictionListView enabled' {
+        (Get-ZshProfileBody -Features @{ Autosuggestions = $true; PredictionListView = $true })  | Should -Match 'ListView'
+        (Get-ZshProfileBody -Features @{ Autosuggestions = $true; PredictionListView = $false }) | Should -Not -Match 'ListView'
+    }
+}
+
+Describe 'Set-ZshManagedBlock' {
+    It 'appends a fresh block to empty content' {
+        $r = Set-ZshManagedBlock -Content '' -Body 'BODYLINE'
+        $r | Should -Match ([regex]::Escape($script:ZshBlockStart))
+        $r | Should -Match 'BODYLINE'
+    }
+    It 'preserves existing user content' {
+        $r = Set-ZshManagedBlock -Content "Write-Host hello" -Body 'BODYLINE'
+        $r | Should -Match 'Write-Host hello'
+        $r | Should -Match 'BODYLINE'
+    }
+    It 'replaces an existing block in place and stays single (idempotent)' {
+        $first  = Set-ZshManagedBlock -Content 'user-line' -Body 'OLD'
+        $second = Set-ZshManagedBlock -Content $first -Body 'NEW'
+        $second | Should -Match 'NEW'
+        $second | Should -Not -Match 'OLD'
+        $second | Should -Match 'user-line'
+        ([regex]::Matches($second, [regex]::Escape($script:ZshBlockStart))).Count | Should -Be 1
+    }
+    It 'does not corrupt bodies containing $ variables' {
+        $r = Set-ZshManagedBlock -Content '' -Body '$env:STARSHIP_CONFIG = "$HOME\.config\starship.toml"'
+        $r | Should -Match ([regex]::Escape('$env:STARSHIP_CONFIG'))
     }
 }
