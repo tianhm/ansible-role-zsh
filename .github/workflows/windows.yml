@@ -40,29 +40,33 @@ jobs:
 
   windows-e2e:
     runs-on: windows-latest
+    # -NoProfile: don't execute the freshly-written profile. It's meant for an
+    # interactive console; in CI's redirected console PSReadLine prediction
+    # legitimately can't initialize (verified working on real Windows separately).
+    defaults:
+      run:
+        shell: pwsh -NoProfile -Command ". '{0}'"
     steps:
       - uses: actions/checkout@v4
       - name: Run install.ps1
-        shell: pwsh
         run: ./install.ps1 -NoCmd -PackageManager choco
       - name: Assert starship installed
-        shell: pwsh
         run: |
+          # Pick up PATH entries added by the installer during this job.
+          $env:PATH = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path', 'User')
           starship --version
           if ($LASTEXITCODE -ne 0) { throw "starship --version failed with exit $LASTEXITCODE" }
       - name: Assert config delivered
-        shell: pwsh
         run: |
           if (-not (Test-Path "$HOME/.config/starship.toml")) { throw 'starship.toml not delivered' }
       - name: Assert managed block present in profile
-        shell: pwsh
         run: |
           $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
           if ($content -notmatch [regex]::Escape('# >>> viasite-ansible zsh >>>')) {
             throw 'managed block missing from profile'
           }
       - name: Re-run is idempotent (single block)
-        shell: pwsh
         run: |
           ./install.ps1 -NoCmd -PackageManager choco
           $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
