@@ -26,6 +26,12 @@ case "$os" in
         ;;
 esac
 
+# Set GIT_REPO (and optionally GIT_BRANCH, default master) to install the role
+# from an arbitrary git repo/branch instead of Ansible Galaxy. Handy for testing
+# a branch before it is released.
+GIT_REPO="${GIT_REPO:-}"
+GIT_BRANCH="${GIT_BRANCH:-master}"
+
 # When run from a checkout (CI / development) use this repo as the role,
 # otherwise (curl | bash) pull the published role and playbook.
 if [ -f ./playbook.yml ] && [ -f ./meta/main.yml ]; then
@@ -34,6 +40,14 @@ if [ -f ./playbook.yml ] && [ -f ./meta/main.yml ]; then
     ln -sfn "$PWD" "$roles_dir/viasite-ansible.zsh"
     export ANSIBLE_ROLES_PATH="$roles_dir"
     playbook=./playbook.yml
+elif [ -n "$GIT_REPO" ]; then
+    title "Clone viasite-ansible.zsh from $GIT_REPO ($GIT_BRANCH)"
+    checkout_dir="$(mktemp -d)/viasite-ansible.zsh"
+    git clone --depth 1 --branch "$GIT_BRANCH" "$GIT_REPO" "$checkout_dir"
+    roles_dir="$(mktemp -d)"
+    ln -sfn "$checkout_dir" "$roles_dir/viasite-ansible.zsh"
+    export ANSIBLE_ROLES_PATH="$roles_dir"
+    playbook="$checkout_dir/playbook.yml"
 else
     title "Install viasite-ansible.zsh"
     ansible-galaxy install viasite-ansible.zsh --force
