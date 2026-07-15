@@ -19,4 +19,16 @@ Describe 'Get-ZshPackageManager' {
         Mock Get-Command { $true }
         Get-ZshPackageManager -Prefer 'choco' | Should -Be 'choco'
     }
+
+    It 'returns winget when both winget and scoop are available' {
+        Mock Get-Command { $true } -ParameterFilter { $Name -eq 'winget' }
+        Mock Get-Command { $true } -ParameterFilter { $Name -eq 'scoop' }
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'choco' }
+        Get-ZshPackageManager | Should -Be 'winget'
+    }
+
+    It 'returns $null when -Prefer manager is not available' {
+        Mock Get-Command { $null }
+        Get-ZshPackageManager -Prefer 'choco' | Should -BeNullOrEmpty
+    }
 }
