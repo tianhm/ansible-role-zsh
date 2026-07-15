@@ -1,0 +1,68 @@
+name: windows
+
+on:
+  push:
+    paths:
+      - 'install.ps1'
+      - 'windows/**'
+      - 'templates/starship.toml.j2'
+      - 'defaults/main.yml'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'install.ps1'
+      - 'windows/**'
+      - 'templates/starship.toml.j2'
+      - 'defaults/main.yml'
+      - '.github/workflows/windows.yml'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Python deps
+        run: pip install -r windows/requirements-dev.txt
+      - name: Render/drift tests
+        run: pytest windows/test_render_starship_config.py -v
+      - name: Pester tests
+        shell: pwsh
+        run: |
+          Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = 'windows/Windows.Tests.ps1'
+          $cfg.Run.Exit = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $cfg
+
+  windows-e2e:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run install.ps1
+        shell: pwsh
+        run: ./install.ps1 -NoCmd
+      - name: Assert starship installed
+        shell: pwsh
+        run: starship --version
+      - name: Assert config delivered
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$HOME/.config/starship.toml")) { throw 'starship.toml not delivered' }
+      - name: Assert managed block present in profile
+        shell: pwsh
+        run: |
+          $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
+          if ($content -notmatch [regex]::Escape('# >>> viasite-ansible zsh >>>')) {
+            throw 'managed block missing from profile'
+          }
+      - name: Re-run is idempotent (single block)
+        shell: pwsh
+        run: |
+          ./install.ps1 -NoCmd
+          $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
+          $count = ([regex]::Matches($content, [regex]::Escape('# >>> viasite-ansible zsh >>>'))).Count
+          if ($count -ne 1) { throw "expected 1 managed block, found $count" }
