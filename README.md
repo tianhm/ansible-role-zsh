@@ -30,9 +30,9 @@ Then [configure terminal application](#configure-terminal-application).
 
 zsh does not run in native Windows shells, so on Windows this repo installs the
 **portable** parts of the setup — the starship prompt plus a fzf / autosuggestion
-/ history experience — into PowerShell (and the starship prompt into `cmd.exe`
-via [clink](https://chrisant996.github.io/clink/)). It uses a standalone
-`install.ps1`; no Ansible, Python, or WSL.
+/ history experience — into PowerShell (and the starship prompt plus `Ctrl+R`
+fzf history into `cmd.exe` via [clink](https://chrisant996.github.io/clink/)).
+It uses a standalone `install.ps1`; no Ansible, Python, or WSL.
 
 Requires a preinstalled package manager: **winget**, **scoop**, or **choco**.
 
@@ -70,7 +70,7 @@ To pass flags, download-and-invoke instead of piping:
 | starship prompt | starship (PowerShell + cmd via clink) |
 | zsh-autosuggestions | PSReadLine `-PredictionSource History` |
 | fast-syntax-highlighting | PSReadLine built-in token coloring |
-| fzf widgets / `Ctrl+R` | fzf + PSFzf |
+| fzf widgets / `Ctrl+R` | fzf + PSFzf (PowerShell); fzf `Ctrl+R` history in cmd.exe via clink |
 | git/docker/kubectl completions | posh-git + native completers |
 | ~25 antigen completion bundles | not ported (PowerShell has its own completion model) |
 

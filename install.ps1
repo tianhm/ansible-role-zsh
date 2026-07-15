@@ -205,6 +205,51 @@ function Write-ZshClinkInit {
         Set-Content -Path (Join-Path $clinkDir 'starship.lua') -Encoding ASCII
 }
 
+function Write-ZshClinkFzf {
+    # Bind Ctrl+R in cmd.exe to fzf over clink's command history. Self-contained
+    # clink Lua (our own, embedded — no third-party download). Requires fzf on
+    # PATH (installed above). Auto-loaded by clink from its scripts dir.
+    $clinkDir = Join-Path $env:LOCALAPPDATA 'clink'
+    if (-not (Test-Path $clinkDir)) { New-Item -ItemType Directory -Path $clinkDir -Force | Out-Null }
+    $lua = @'
+-- viasite-ansible zsh: bind Ctrl+R to fzf over clink command history.
+-- Self-contained (no third-party clink-fzf). Requires fzf on PATH.
+
+local function history_file()
+    local la = os.getenv("LOCALAPPDATA") or ""
+    return la .. "\\clink\\clink_history"
+end
+
+local function fzf_history(rl_buffer)
+    local histfile = history_file()
+    local test = io.open(histfile, "r")
+    if not test then rl_buffer:refreshline(); return end
+    test:close()
+    local query = (rl_buffer:getbuffer() or ""):gsub('"', "")
+    local cmd = string.format(
+        'type "%s" 2>nul | fzf --height 40%% --reverse --tac --no-sort --exact --query "%s"',
+        histfile, query)
+    local p = io.popen(cmd)
+    local choice = p and p:read("*l") or nil
+    if p then p:close() end
+    if choice and choice ~= "" then
+        rl_buffer:beginundogroup()
+        rl_buffer:remove(0, -1)
+        rl_buffer:insert(choice)
+        rl_buffer:endundogroup()
+    end
+    rl_buffer:refreshline()
+end
+
+_fzf_history = fzf_history
+if rl and rl.setbinding then
+    rl.setbinding("\\C-r", "luafunc:_fzf_history")
+end
+'@
+    [System.IO.File]::WriteAllText((Join-Path $clinkDir 'fzf-history.lua'), $lua + "`n")
+    return $true
+}
+
 function Invoke-ZshWindowsInstall {
     [CmdletBinding()]
     param(
@@ -236,6 +281,8 @@ Then re-run install.ps1.
         $clinkOk = Install-ZshBinary -Manager $pm -Name 'clink'
         Write-ZshClinkInit
         $summary['cmd.exe prompt (clink)'] = if ($clinkOk) { 'installed' } else { 'failed' }
+        $fzfCmdOk = Write-ZshClinkFzf
+        $summary['cmd.exe fzf (Ctrl+R)'] = if ($fzfCmdOk) { 'installed' } else { 'skipped (download failed)' }
     } else {
         $summary['cmd.exe prompt (clink)'] = 'skipped (-NoCmd)'
     }
