@@ -47,7 +47,9 @@ jobs:
         run: ./install.ps1 -NoCmd
       - name: Assert starship installed
         shell: pwsh
-        run: starship --version
+        run: |
+          starship --version
+          if ($LASTEXITCODE -ne 0) { throw "starship --version failed with exit $LASTEXITCODE" }
       - name: Assert config delivered
         shell: pwsh
         run: |
