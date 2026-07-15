@@ -18,6 +18,80 @@ $script:ZshBlockStart = '# >>> viasite-ansible zsh >>>'
 $script:ZshBlockEnd   = '# <<< viasite-ansible zsh <<<'
 $script:WingetIds     = @{ starship = 'Starship.Starship'; fzf = 'junegunn.fzf'; clink = 'chrisant996.Clink' }
 
+# Default starship.toml, embedded so `irm | iex` needs no second download
+# (in remote mode $PSScriptRoot is empty and there is no local file to copy).
+# Generated from templates/starship.toml.j2 by windows/render_starship_config.py;
+# CI drift-checks that this matches windows/starship.toml. Do not edit by hand.
+$script:StarshipToml = @'
+# Managed by ansible-role-zsh (windows/render_starship_config.py) - do not edit
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Generated starship preset reproducing the role's powerlevel9k prompt layout.
+# Colors/behavior are driven by the existing zsh_powerlevel9k_* role variables.
+# add_newline = false
+
+format = "$username$hostname$directory"
+right_format = "$status$python$jobs$git_branch$git_commit$git_metrics$git_status$cmd_duration$time"
+
+[username]
+show_always = false
+style_user = "fg:255 bg:024"
+style_root = "fg:255 bg:124"
+format = "[ ($user@)]($style)"
+
+[hostname]
+ssh_only = true
+style = "fg:255 bg:024"
+format = "[$hostname ]($style)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+style = "fg:255 bg:240"
+format = "[ $path ]($style) "
+
+[status]
+disabled = false
+map_symbol = true
+style = "none"
+format = "[$symbol$status]($style) "
+
+[jobs]
+style = "fg:000 bg:248"
+format = "[ $symbol$number ]($style)"
+
+[git_branch]
+style = "fg:232 bg:100"
+format = "[ $symbol$branch ]($style)"
+ignore_branches = ['master', 'main']
+
+[git_commit]
+style = "fg:232 bg:100"
+format = "[$tag ]($style)"
+
+[git_metrics]
+disabled = false
+
+[git_status]
+style = "fg:232 bg:094"
+format = "([ $all_status$ahead_behind ]($style))"
+
+[cmd_duration]
+min_time = 3000
+style = "fg:000 bg:248"
+format = "[ $duration ]($style)"
+
+[python]
+format = '[${pyenv_prefix}($virtualenv)]($style) '
+
+[time]
+disabled = false
+style = "fg:000 bg:248"
+format = "[ $time ]($style)"
+'@
+
 function Get-ZshPackageManager {
     param([string]$Prefer)
     $order = if ($Prefer) { @($Prefer) } else { @('winget', 'scoop', 'choco') }
@@ -119,13 +193,9 @@ function Get-ZshStarshipConfig {
     if ((Test-Path $Destination) -and -not $Force) { return }
     $dir = Split-Path -Parent $Destination
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $local = if ($PSScriptRoot) { Join-Path $PSScriptRoot 'windows/starship.toml' } else { $null }
-    if ($local -and (Test-Path $local)) {
-        Copy-Item $local $Destination -Force
-    } else {
-        $url = 'https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/windows/starship.toml'
-        Invoke-WebRequest -Uri $url -OutFile $Destination -UseBasicParsing
-    }
+    # Write the embedded config directly (UTF-8, no BOM) so this works identically
+    # in checkout mode and under `irm | iex`, with no network dependency.
+    [System.IO.File]::WriteAllText($Destination, $script:StarshipToml + "`n")
 }
 
 function Write-ZshClinkInit {
