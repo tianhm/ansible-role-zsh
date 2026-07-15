@@ -279,10 +279,18 @@ Then re-run install.ps1.
     $summary['fzf'] = if ($fzfOk) { 'installed' } else { 'failed' }
     if (-not $NoCmd) {
         $clinkOk = Install-ZshBinary -Manager $pm -Name 'clink'
+        # Refresh PATH so the just-installed clink shim resolves in this session.
+        $env:PATH = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path', 'User')
         Write-ZshClinkInit
-        $summary['cmd.exe prompt (clink)'] = if ($clinkOk) { 'installed' } else { 'failed' }
         $fzfCmdOk = Write-ZshClinkFzf
-        $summary['cmd.exe fzf (Ctrl+R)'] = if ($fzfCmdOk) { 'installed' } else { 'skipped (download failed)' }
+        # Register our script dir so clink loads starship.lua + fzf-history.lua
+        # regardless of which profile directory clink was configured with.
+        if (Get-Command clink -ErrorAction SilentlyContinue) {
+            clink installscripts (Join-Path $env:LOCALAPPDATA 'clink') | Out-Null
+        }
+        $summary['cmd.exe prompt (clink)'] = if ($clinkOk) { 'installed' } else { 'failed' }
+        $summary['cmd.exe fzf (Ctrl+R)'] = if ($fzfCmdOk) { 'installed' } else { 'skipped' }
     } else {
         $summary['cmd.exe prompt (clink)'] = 'skipped (-NoCmd)'
     }
