@@ -73,11 +73,15 @@ Describe 'Get-ZshProfileBody' {
     }
     It 'includes PSFzf bindings only when enabled' {
         (Get-ZshProfileBody -Features @{ PSFzf = $true })  | Should -Match 'PSFzf'
+        (Get-ZshProfileBody -Features @{ PSFzf = $true })  | Should -Match 'Set-PsFzfOption'
         (Get-ZshProfileBody -Features @{ PSFzf = $false }) | Should -Not -Match 'PSFzf'
     }
     It 'includes ListView line only when PredictionListView enabled' {
         (Get-ZshProfileBody -Features @{ Autosuggestions = $true; PredictionListView = $true })  | Should -Match 'ListView'
         (Get-ZshProfileBody -Features @{ Autosuggestions = $true; PredictionListView = $false }) | Should -Not -Match 'ListView'
+    }
+    It 'does not include PredictionSource when Autosuggestions disabled' {
+        (Get-ZshProfileBody -Features @{ Autosuggestions = $false }) | Should -Not -Match 'PredictionSource'
     }
 }
 
@@ -100,8 +104,9 @@ Describe 'Set-ZshManagedBlock' {
         $second | Should -Match 'user-line'
         ([regex]::Matches($second, [regex]::Escape($script:ZshBlockStart))).Count | Should -Be 1
     }
-    It 'does not corrupt bodies containing $ variables' {
-        $r = Set-ZshManagedBlock -Content '' -Body '$env:STARSHIP_CONFIG = "$HOME\.config\starship.toml"'
-        $r | Should -Match ([regex]::Escape('$env:STARSHIP_CONFIG'))
+    It 'does not corrupt bodies containing $ variables and .NET regex tokens' {
+        $body = '$env:FOO = "$1 and $$ and $& literal"'
+        $r = Set-ZshManagedBlock -Content '' -Body $body
+        $r | Should -Match ([regex]::Escape('$1 and $$ and $& literal'))
     }
 }
