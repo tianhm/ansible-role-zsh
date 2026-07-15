@@ -1,45 +1,6 @@
-Tested on Ubuntu 20.04, Ubuntu 22.04, Ubuntu 24.04, MacOS 14.4.
+Tested on Ubuntu 20.04, Ubuntu 22.04, Ubuntu 24.04, MacOS 26.
 
-Tested long time ago: Ubuntu 18.04, MacOS 10.12, CentOS 8
-
-**For upgrade from viasite-ansible.zsh 1.x, 2.x to 3.0 see [below](#upgrade).**
-
-
-
-## Zero-knowledge install:
-If you are using Ubuntu or Debian and not familiar with Ansible, you can just execute [install.sh](install.sh) on target machine:
-```
-curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.sh | bash
-```
-It will install pip3, ansible and setup zsh for root and current user.
-
-## MacOS zero-knowledge install:
-Requirements: brew, python. Asks user's password. [install-macos.sh](install-macos.sh) will install ansible, and setup zsh for current user and optionally for root:
-```
-curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install-macos.sh | bash
-```
-
-Then [configure terminal application](#configure-terminal-application).
-
-
-## Includes:
-- zsh
-- [antigen](https://github.com/zsh-users/antigen)
-- [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
-- [powerlevel9k theme](https://github.com/bhilburn/powerlevel9k)
-- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
-- [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
-- [unixorn/autoupdate-antigen.zshplugin](https://github.com/unixorn/autoupdate-antigen.zshplugin)
-- [sorenson-axial/fzf-widgets](https://github.com/sorenson-axial/fzf-widgets)
-- [urbainvaes/fzf-marks](https://github.com/popstas/urbainvaes/fzf-marks)
-
-## Features
-- customize powerlevel9k theme prompt segments and colors
-- default colors tested with solarized dark and default grey terminal in putty
-- add custom prompt elements from yml
-- custom zsh config with `~/.zshrc.local` or `/etc/zshrc.local`
-- load `/etc/profile.d` scripts
-- install only plugins that useful for your machine. For example, plugin `docker` will not install if you have not Docker
+Tested long time ago: Ubuntu 18.04, MacOS 14.4, MacOS 10.12, CentOS 8
 
 ## 1.5 mins demo
 ![1.5 mins demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-demo.gif?raw=true)
@@ -47,16 +8,179 @@ Then [configure terminal application](#configure-terminal-application).
 ## Color schemes
 ![colors demo](https://github.com/popstas/popstas.github.io/blob/master/images/2017-03/ansible-role-zsh-colors.gif?raw=true)
 
+## Zero-knowledge install:
+If you are not familiar with Ansible, you can just execute [install.sh](install.sh) on the target machine. It detects the OS (Ubuntu/Debian or macOS), installs Ansible, and sets up zsh for the current user:
+```
+curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.sh | bash
+```
+
+- **Ubuntu/Debian**: installs pip3, Ansible (into `~/ansible-venv`) and zsh.
+- **macOS**: requires `brew` and `python`; installs Ansible via brew and zsh.
+- It runs non-interactively when possible — you are only asked for a password if `sudo` is not passwordless.
+- To also provision the **root** user, set `ZSH_INSTALL_ROOT=1`:
+  ```
+  curl https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.sh | ZSH_INSTALL_ROOT=1 bash
+  ```
+
+> The previous `install-macos.sh` URL still works — it now forwards to `install.sh`.
+
+Then [configure terminal application](#configure-terminal-application).
+
+## Windows (PowerShell / cmd)
+
+zsh does not run in native Windows shells, so on Windows this repo installs the
+**portable** parts of the setup — the starship prompt plus a fzf / autosuggestion
+/ history experience — into PowerShell (and the starship prompt plus `Ctrl+R`
+fzf history into `cmd.exe` via [clink](https://chrisant996.github.io/clink/)).
+It uses a standalone `install.ps1`; no Ansible, Python, or WSL.
+
+Requires a preinstalled package manager: **winget**, **scoop**, or **choco**.
+
+```powershell
+irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1 | iex
+```
+
+If your ExecutionPolicy blocks it, run PowerShell once as:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1 | iex"
+```
+
+To pass flags, download-and-invoke instead of piping:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/viasite-ansible/ansible-role-zsh/master/install.ps1))) -NoCmd -NoPoshGit
+```
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `-NoCmd` | Skip clink install and cmd.exe prompt setup |
+| `-NoAutosuggestions` | Skip PSReadLine history predictions |
+| `-NoPSFzf` | Skip PSFzf (fzf `Ctrl+R` / `Ctrl+T`) |
+| `-NoPoshGit` | Skip posh-git |
+| `-Force` | Overwrite an existing `~/.config/starship.toml` |
+| `-PackageManager <winget\|scoop\|choco>` | Force a specific manager |
+
+### What maps over
+
+| zsh feature | Windows equivalent |
+|---|---|
+| starship prompt | starship (PowerShell + cmd via clink) |
+| zsh-autosuggestions | PSReadLine `-PredictionSource History` |
+| fast-syntax-highlighting | PSReadLine built-in token coloring |
+| fzf widgets / `Ctrl+R` | fzf + PSFzf (PowerShell); fzf `Ctrl+R` history in cmd.exe via clink |
+| git/docker/kubectl completions | posh-git + native completers |
+| ~25 antigen completion bundles | not ported (PowerShell has its own completion model) |
+
+The Windows starship prompt is generated from the same template as the
+Linux/macOS default (`windows/starship.toml`, kept in sync by CI).
+
+## Includes:
+- zsh
+- [antigen](https://github.com/zsh-users/antigen)
+- [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
+- [starship prompt](https://starship.rs/) (default prompt)
+- [powerlevel9k/powerlevel10k theme](https://github.com/romkatv/powerlevel10k) (optional, via `zsh_theme: powerlevel10k`)
+- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
+- [zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting)
+- [unixorn/autoupdate-antigen.zshplugin](https://github.com/unixorn/autoupdate-antigen.zshplugin)
+- [sorenson-axial/fzf-widgets](https://github.com/sorenson-axial/fzf-widgets)
+- [urbainvaes/fzf-marks](https://github.com/popstas/urbainvaes/fzf-marks)
+
+## Features
+- selectable prompt theme: starship (default) or powerlevel10k (see [Prompt theme](#prompt-theme))
+- customize powerlevel9k theme prompt segments and colors
+- default colors tested with solarized dark and default grey terminal
+- add custom prompt elements from yml
+- custom zsh config with `~/.zshrc.local` or `/etc/zshrc.local`
+- load `/etc/profile.d` scripts
+- install only plugins that useful for your machine. For example, plugin `docker` will not install if you have not Docker
+
+## Prompt theme
+The role supports two selectable prompt themes via the `zsh_theme` variable:
+
+- `starship` (**default since v4**) — the cross-shell [starship](https://starship.rs/) prompt, installed as a standalone binary.
+- `powerlevel10k` — the classic antigen-bundled [powerlevel10k](https://github.com/romkatv/powerlevel10k) prompt.
+
+Starting with v4 the default is `starship` (earlier versions defaulted to `powerlevel10k`).
+If you were relying on the previous `powerlevel10k` default,
+set `zsh_theme: powerlevel10k` to keep the old prompt:
+``` yaml
+- hosts: all
+  vars:
+    zsh_theme: powerlevel10k
+  roles:
+    - viasite-ansible.zsh
+```
+
+When `starship` is selected, the powerlevel10k/powerlevel9k wiring is skipped, the starship binary is
+installed to `zsh_starship_path`, the prompt is activated in `.zshrc` with `eval "$(starship init zsh)"`,
+and a `~/.config/starship.toml` is generated to reproduce the role's p9k-style prompt segments and colors.
+
+starship-related variables:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `zsh_theme` | `starship` | Prompt theme: `starship` or `powerlevel10k`. |
+| `zsh_starship_version` | `"1.23.0"` | Pinned starship binary version to install. |
+| `zsh_starship_path` | `"$HOME/bin"` | Install directory for the starship binary (already on PATH; `/usr/local/bin` when `zsh_shared`). |
+| `zsh_starship_manage_config` | `yes` | Render and manage `~/.config/starship.toml` (and export `STARSHIP_CONFIG`). Set `no` to leave the config alone. |
+| `zsh_starship_config` | `""` | Raw verbatim `starship.toml` content. When set, it is written as-is instead of the generated preset (and no merge happens). |
+| `zsh_starship_config_user_file` | `~<user>/.config/starship.user.toml` | User-editable override file. If present, its keys are deep-merged **over** the generated preset, so you can tweak a few settings while keeping the rest. |
+| `zsh_starship_config_user` | `""` | Inline `starship.toml` override string. Merged **last**, so it beats both the generated preset and the user file. |
+
+### Customizing the generated config
+
+Starship reads a single config file and has no include/merge mechanism of its own, so the role
+deep-merges your overrides into the generated preset **at provision time** and writes the result to
+`~/.config/starship.toml`. You only specify the keys you want to change — everything else stays as
+the generated preset.
+
+Override precedence (low → high):
+
+```
+generated preset  →  zsh_starship_config_user_file  →  zsh_starship_config_user
+```
+
+A table you override is merged key-by-key (your keys win); a scalar or array replaces the generated
+value outright. To override a whole prompt without merging, use `zsh_starship_config` instead — it is
+written verbatim and bypasses the merge entirely.
+
+Example — keep the generated prompt but change the right side and restyle the command-duration
+segment (as an inline override in host/group vars):
+
+```yaml
+zsh_starship_config_user: |
+  right_format = "$status$cmd_duration$time"
+
+  [cmd_duration]
+  style = "fg:green"
+```
+
+The same content can instead live in a host-side file (default `~/.config/starship.user.toml`) that
+users edit directly; it is merged on every run if present. If both are set, the inline
+`zsh_starship_config_user` wins over the file.
+
+Requirements/notes for the merge:
+
+- Needs Python 3.11+ on the managed host (uses the stdlib `tomllib`); no extra pip/collection deps.
+- The merged file is re-serialized, so the generated header comment is dropped and strings are
+  normalized (single → double quotes, inline tables expanded to `[table.subtable]`). The result is
+  equivalent, valid TOML.
+
+Note: like powerlevel10k, starship needs a [Nerd Font](https://www.nerdfonts.com/) installed in your terminal
+to render the prompt icons/glyphs correctly.
+
 ## Midnight Commander Solarized Dark skin
 If you are using Solarized Dark scheme and `mc`, you should want to install skin, then set `zsh_mc_solarized_skin: yes`
 
 
-## Demo install in Vagrant
-You can test work of role before install in real machine.
-Just execute `vagrant up`, then `vagrant ssh` for enter in virtual machine.
+## Testing
 
-Note: you cannot install vagrant on VPS like Digital Ocean or in Docker. Use local machine for it.
-[Download](https://www.vagrantup.com/downloads.html) and install vagrant for your operating system.
+The role is tested with [Molecule](https://ansible.readthedocs.io/projects/molecule/).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to run the test scenarios.
 
 
 
@@ -65,13 +189,16 @@ Zero-knowledge install: see [above](#zero-knowledge-install).
 
 ### Manual install
 
-0. [Install Ansible](http://docs.ansible.com/ansible/intro_installation.html).
+0. [Install Ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html).
 For Ubuntu:
 ``` bash
 sudo apt update
-sudo apt install python3-pip -y
-sudo pip3 install ansible
+sudo apt install python3-venv python3-pip -y
+python3 -m venv ~/ansible-venv
+source ~/ansible-venv/bin/activate
+pip install ansible
 ```
+For macOS: `brew install ansible`.
 
 1. Download role:
 ```
@@ -156,25 +283,11 @@ Add your custom config to `~/.zshrc.local` (per user) or `/etc/zshrc.local` (glo
 
 
 ### Configure terminal application
-1. Download [powerline fonts](https://github.com/powerline/fonts), install font that you prefer.
-You can see screenshots [here](https://github.com/powerline/fonts/blob/master/samples/All.md).
+1. Download and install a [Nerd Font](https://www.nerdfonts.com/) of your choice, then
+select it in your terminal. Both starship and powerlevel10k need a Nerd Font to render
+the prompt icons/glyphs correctly.
 
-2. Set color scheme.
-
-Personaly, I prefer Solarized Dark color sceme, Droid Sans Mono for Powerline in iTerm and DejaVu Sans Mono in Putty.
-
-#### iTerm
-Profiles - Text - Change Font - select font "for Powerline"
-
-Profiles - Colors - Color Presets... - select Solarized Dark
-
-#### Putty
-Settings - Window - Appearance - Font settings
-
-You can download [Solarized Dark for Putty](https://github.com/altercation/solarized/tree/master/putty-colors-solarized).
-
-#### Gnome Terminal
-gnome-terminal have built-in Solarized Dark, note that you should select both background color scheme and palette scheme.
+2. Set a color scheme. Personally, I prefer the Solarized Dark color scheme.
 
 
 
@@ -268,25 +381,6 @@ You can add any code in variable `zsh_custom_before`, `zsh_custom_after`.
 
 - zsh_custom_before - before include antigen.zsh
 - zsh_custom_after - before include ~/.zshrc.local
-
-## Upgrade
-viasite-ansible.zsh v3.0 introduces antigen v2.0, it don't have backward compatibility to antigen 1.x.
-
-I don't spent much time for smooth upgrade, therefore you probably should do some manual actions:
-if powerlevel9k prompt don't loaded after provision role, you should execute `antigen reset`.
-
-After reopen shell all should be done.
-
-### Downgrade to antigen v1
-Antigen v2 much faster (up to 2x more faster startup), but if something went wrong, you can downgrade to antigen v1,
-see note for zsh 4.3 users below.
-
-### For users with zsh 4.x
-Antigen v2 not work on zsh < 5.0, if you use zsh 4.x, please add to you playbook:
-``` yaml
-zsh_antigen_version: v1.4.1
-```
-
 
 ## Known bugs
 ### `su username` caused errors

@@ -1,0 +1,74 @@
+name: windows
+
+on:
+  push:
+    paths:
+      - 'install.ps1'
+      - 'windows/**'
+      - 'templates/starship.toml.j2'
+      - 'defaults/main.yml'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'install.ps1'
+      - 'windows/**'
+      - 'templates/starship.toml.j2'
+      - 'defaults/main.yml'
+      - '.github/workflows/windows.yml'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Install Python deps
+        run: pip install -r windows/requirements-dev.txt
+      - name: Render/drift tests
+        run: pytest windows/test_render_starship_config.py -v
+      - name: Pester tests
+        shell: pwsh
+        run: |
+          Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = 'windows/Windows.Tests.ps1'
+          $cfg.Run.Exit = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $cfg
+
+  windows-e2e:
+    runs-on: windows-latest
+    # -NoProfile: don't execute the freshly-written profile. It's meant for an
+    # interactive console; in CI's redirected console PSReadLine prediction
+    # legitimately can't initialize (verified working on real Windows separately).
+    defaults:
+      run:
+        shell: pwsh -NoProfile -Command ". '{0}'"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run install.ps1
+        run: ./install.ps1 -NoCmd -PackageManager choco
+      - name: Assert starship installed
+        run: |
+          # Pick up PATH entries added by the installer during this job.
+          $env:PATH = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path', 'User')
+          starship --version
+          if ($LASTEXITCODE -ne 0) { throw "starship --version failed with exit $LASTEXITCODE" }
+      - name: Assert config delivered
+        run: |
+          if (-not (Test-Path "$HOME/.config/starship.toml")) { throw 'starship.toml not delivered' }
+      - name: Assert managed block present in profile
+        run: |
+          $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
+          if ($content -notmatch [regex]::Escape('# >>> viasite-ansible zsh >>>')) {
+            throw 'managed block missing from profile'
+          }
+      - name: Re-run is idempotent (single block)
+        run: |
+          ./install.ps1 -NoCmd -PackageManager choco
+          $content = Get-Content $PROFILE.CurrentUserAllHosts -Raw
+          $count = ([regex]::Matches($content, [regex]::Escape('# >>> viasite-ansible zsh >>>'))).Count
+          if ($count -ne 1) { throw "expected 1 managed block, found $count" }

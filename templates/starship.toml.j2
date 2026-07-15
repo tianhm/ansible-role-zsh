@@ -1,0 +1,90 @@
+# {{ ansible_managed }}
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Generated starship preset reproducing the role's powerlevel9k prompt layout.
+# Colors/behavior are driven by the existing zsh_powerlevel9k_* role variables.
+{%- set seg_tokens = {
+  'context': '$username$hostname',
+  'dir': '$directory',
+  'status': '$status',
+  'background_jobs': '$jobs',
+  'vcs': '$git_branch$git_commit$git_metrics$git_status',
+  'command_execution_time': '$cmd_duration',
+  'virtualenv': '$python',
+  'time': '$time',
+} -%}
+{%- set left = [] -%}
+{%- for seg in zsh_powerlevel9k_left_prompt -%}
+{%- if seg in seg_tokens and left.append(seg_tokens[seg]) %}{% endif -%}
+{%- endfor -%}
+{%- set right = [] -%}
+{%- for seg in zsh_powerlevel9k_right_prompt -%}
+{%- if seg in seg_tokens and right.append(seg_tokens[seg]) %}{% endif -%}
+{%- endfor %}
+
+# add_newline = {{ zsh_powerlevel9k_prompt_on_newline_bool }}
+
+format = "{{ left | join('') }}"
+right_format = "{{ right | join('') }}"
+
+[username]
+show_always = {{ zsh_powerlevel9k_always_show_user_bool }}
+style_user = "fg:{{ zsh_powerlevel9k_context_default_foreground }} bg:{{ zsh_powerlevel9k_context_default_background }}"
+style_root = "fg:{{ zsh_powerlevel9k_context_root_foreground }} bg:{{ zsh_powerlevel9k_context_root_background }}"
+format = "[ ($user@)]($style)"
+{% if zsh_hide_username %}
+aliases = { {{ zsh_hide_username }} = "" }
+{% endif %}
+
+[hostname]
+ssh_only = {% if zsh_powerlevel9k_hide_host_on_local %}true{% else %}false{% endif %}
+
+style = "fg:{{ zsh_powerlevel9k_context_default_foreground }} bg:{{ zsh_powerlevel9k_context_default_background }}"
+format = "[$hostname ]($style)"
+
+[directory]
+truncation_length = {{ zsh_powerlevel9k_shorten_dir_length }}
+truncate_to_repo = true
+truncation_symbol = "…/"
+style = "fg:{{ zsh_powerlevel9k_dir_foreground }} bg:{{ zsh_powerlevel9k_dir_background }}"
+format = "[ $path ]($style) "
+
+[status]
+disabled = false
+map_symbol = true
+style = "none"
+format = "[$symbol$status]($style) "
+
+[jobs]
+style = "fg:{{ zsh_powerlevel9k_command_execution_time_foreground }} bg:{{ zsh_powerlevel9k_command_execution_time_background }}"
+format = "[ $symbol$number ]($style)"
+
+[git_branch]
+style = "fg:{{ zsh_powerlevel9k_vcs_foreground }} bg:{{ zsh_powerlevel9k_vcs_clean_background }}"
+format = "[ $symbol$branch ]($style)"
+ignore_branches = ['master', 'main']
+
+[git_commit]
+style = "fg:{{ zsh_powerlevel9k_vcs_foreground }} bg:{{ zsh_powerlevel9k_vcs_clean_background }}"
+format = "[$tag ]($style)"
+
+[git_metrics]
+disabled = false
+
+[git_status]
+style = "fg:{{ zsh_powerlevel9k_vcs_foreground }} bg:{{ zsh_powerlevel9k_vcs_modified_background }}"
+format = "([ $all_status$ahead_behind ]($style))"
+
+[cmd_duration]
+min_time = {{ zsh_command_time_min_seconds | int * 1000 }}
+style = "fg:{{ zsh_powerlevel9k_command_execution_time_foreground }} bg:{{ zsh_powerlevel9k_command_execution_time_background }}"
+format = "[ $duration ]($style)"
+
+[python]
+format = '[${pyenv_prefix}($virtualenv)]($style) '
+
+[time]
+disabled = false
+style = "fg:{{ zsh_powerlevel9k_command_execution_time_foreground }} bg:{{ zsh_powerlevel9k_command_execution_time_background }}"
+format = "[ $time ]($style)"

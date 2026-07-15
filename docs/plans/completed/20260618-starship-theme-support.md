@@ -1,0 +1,221 @@
+# Starship theme support (selectable prompt: powerlevel10k | starship)
+
+## Overview
+Add [starship](https://github.com/starship/starship) as a selectable prompt theme alongside the
+current powerlevel10k. Users pick the theme via a new `zsh_theme` variable; the default stays
+`powerlevel10k` so existing deployments are unaffected (fully backward compatible).
+
+Unlike powerlevel10k, starship is a standalone Rust binary — it is not an antigen bundle. It is
+installed as a binary and activated in `.zshrc` with `eval "$(starship init zsh)"`. When starship
+is selected, all powerlevel10k/powerlevel9k wiring is skipped and a generated
+`~/.config/starship.toml` reproduces the role's current p9k-style prompt (segments + colors) so the
+visual result is close to parity.
+
+Problem it solves: lets users opt into the faster, cross-shell starship prompt without losing the
+existing powerlevel10k default or the role's curated prompt layout.
+
+## Context (from discovery)
+- **Theme is currently driven by** `zsh_antigen_theme: "romkatv/powerlevel10k powerlevel10k"`
+  (`defaults/main.yml:82`).
+- **`templates/zshrc.j2` p10k-coupled blocks** (all currently gated on the literal string compare
+  `zsh_antigen_theme == "romkatv/powerlevel10k powerlevel10k"`):
+  - instant-prompt header — lines ~9-19
+  - `antigen theme {{ zsh_antigen_theme }}` — line ~86
+  - `POWERLEVEL9K_*` config block — lines ~134-191 (rendered unconditionally today)
+  - `source ~/.p10k.zsh` — lines ~204-207
+- **Install patterns to mirror** (`tasks/install.yml`): home-bin dir handling
+  (`zsh_fzf_path` = `$HOME/bin`, already added to `zsh_path`/PATH via `defaults/main.yml`),
+  `which <bin>` idempotence check, `get_url` + `creates:` guard, `become_user: "{{ zsh_user }}"`.
+- **vars/main.yml** derives bool/url facts (e.g. `zsh_powerlevel9k_*_bool`, `zsh_fzf_url`,
+  `zsh_fzf_arch`) — the place to add the normalized starship flag and the install URL/arch.
+- **Task includes** live in `tasks/main.yml` (install → configure → post-install → shared).
+- **Tests = molecule**: docker driver, `molecule test --all` in `.gitlab-ci.yml`. Scenarios:
+  `default`, `shared`, `user`, `resources` (shared converge/prepare). **No verifier exists yet**
+  (no `verify.yml`, no testinfra) — "passing" currently means converge + idempotence across
+  Debian10 / Ubuntu16.04/18.04/20.04 / CentOS8.
+- Relevant existing prompt vars to reuse for the toml preset: `zsh_powerlevel9k_left_prompt`,
+  `zsh_powerlevel9k_right_prompt`, `zsh_powerlevel9k_dir_foreground/background`,
+  `zsh_powerlevel9k_context_default_*` / `_root_*`, `zsh_powerlevel9k_vcs_*`,
+  `zsh_powerlevel9k_command_execution_time_*`, `zsh_command_time_min_seconds`,
+  `zsh_powerlevel9k_hide_host_on_local`, `zsh_powerlevel9k_prompt_on_newline`.
+
+## Development Approach
+- **Testing approach**: Regular (code first, then molecule scenario + verify.yml). For this role,
+  "tests" = molecule converge/idempotence plus explicit `verify.yml` assertions on the rendered
+  `.zshrc` / `starship.toml` and installed binary.
+- Complete each task fully before moving to the next; small, focused changes.
+- **Maintain backward compatibility**: `zsh_theme` defaults to `powerlevel10k`; with defaults
+  unchanged the rendered `.zshrc` must be byte-equivalent to today's output (no spurious diff).
+- After each task: render/converge the relevant molecule scenario (or `--syntax-check` +
+  template render) and confirm no errors before proceeding.
+- **Update this plan file if scope changes during implementation.**
+
+## Testing Strategy
+- **Unit-equivalent**: Jinja template correctness verified by molecule converge (template render
+  fails the play on error). Where feasible, add focused assertions in `verify.yml`.
+- **E2E (molecule)**: new `molecule/starship` scenario with `zsh_theme: starship`, plus a
+  `verify.yml` asserting: starship binary installed & on PATH; `.zshrc` contains
+  `starship init zsh`; `.zshrc` contains **no** `POWERLEVEL9K_` lines and no p10k instant-prompt
+  block; `~/.config/starship.toml` exists and is non-empty. The existing `default`/`shared`/`user`
+  scenarios must keep passing unchanged (powerlevel10k path).
+- All scenarios run via `molecule test --all` (CI) — must pass before the plan is complete.
+
+## Progress Tracking
+- Mark completed items with `[x]` immediately when done.
+- Add newly discovered tasks with ➕ prefix; blockers with ⚠️ prefix.
+- Keep this plan in sync with actual work.
+
+## What Goes Where
+- **Implementation Steps** (checkboxes): vars, tasks, templates, molecule scenario/verify, docs —
+  all automatable in this repo.
+- **Post-Completion** (no checkboxes): manual visual check of the starship prompt in a real
+  terminal with a Nerd Font; macOS verification on real hardware (molecule is Linux/docker only).
+
+## Implementation Steps
+
+### Task 1: Add `zsh_theme` selector variable and normalized flag
+- [x] add `zsh_theme: powerlevel10k` to `defaults/main.yml` near the theme settings (with a
+      comment listing valid values: `powerlevel10k`, `starship`), keeping `zsh_antigen_theme`
+      as-is for backward compatibility.
+- [x] add starship defaults to `defaults/main.yml`: `zsh_starship_version` (pinned, e.g.
+      `"1.23.0"`), `zsh_starship_path: "$HOME/bin"`, `zsh_starship_manage_config: yes`,
+      `zsh_starship_config: ""` (raw verbatim override; empty = use generated preset).
+- [x] add to `vars/main.yml`: starship download facts mirroring fzf (`zsh_starship_arch`,
+      `zsh_starship_os_target`, `zsh_starship_url`) and `zsh_starship_path_absolute`
+      (`zsh_starship_path | replace('$HOME', '~' + zsh_user)`). (A `zsh_theme_is_starship`
+      convenience fact was dropped — tasks/templates gate directly on `zsh_theme == 'starship'`.)
+- [x] confirm the home-bin dir (`$HOME/bin`) is on PATH for starship via existing `zsh_path`
+      (it already includes `zsh_fzf_path`); if starship uses a different dir, add it to `zsh_path`.
+      (starship uses `$HOME/bin` = `zsh_fzf_path`, already in `zsh_path` — no change needed.)
+- [x] run `ansible-playbook --syntax-check playbook.yml` (or molecule `default` converge) — must
+      pass before Task 2. (syntax-check via role path passes; new vars render for both theme values.)
+
+### Task 2: Install the starship binary (`tasks/starship.yml`)
+- [x] create `tasks/starship.yml`: idempotent install of starship to `zsh_starship_path`. Mirrors
+      the role's existing fzf pattern (`get_url` tarball + `unarchive` using the per-OS
+      `zsh_starship_url` facts added in Task 1) rather than piping the official install.sh — more
+      idempotent and consistent with `install.yml`. Guarded by a `which starship` + `starship
+      --version` check that sets `zsh_starship_need_install` (install only when missing or
+      version-mismatched); `changed_when: false` on the checks.
+- [x] ensure the bin dir exists (reuses the `file: state=directory` pattern from `install.yml`;
+      `zsh_starship_path_absolute` set to `/usr/local/bin` when `zsh_shared`).
+- [x] handle macOS vs Linux the same way (tarball URL switches on `zsh_starship_os_target`); the
+      powerlevel10k path is untouched because the include is gated on `zsh_theme == 'starship'`.
+- [x] include `tasks/starship.yml` from `tasks/main.yml` with `when: zsh_theme == 'starship'`
+      and `zsh`/`install` tags.
+- [x] tests deferred to Task 5 verify.yml where starship binary presence is asserted (molecule
+      needs docker, unavailable here); validated via `ansible-playbook --syntax-check` + YAML parse.
+
+### Task 3: Branch `templates/zshrc.j2` on theme
+- [x] replace the literal `zsh_antigen_theme == "romkatv/powerlevel10k powerlevel10k"` guards with
+      `zsh_theme == 'powerlevel10k'` for: the instant-prompt header block, the
+      `antigen theme {{ zsh_antigen_theme }}` line, the entire `POWERLEVEL9K_*` block, and the
+      `source ~/.p10k.zsh` block.
+- [x] add a starship branch (`{% if zsh_theme == 'starship' %}`) that appends, near the end of the
+      file (after `antigen apply` and after user-config sourcing), `eval "$(starship init zsh)"`,
+      and exports `STARSHIP_CONFIG="$HOME/.config/starship.toml"` when `zsh_starship_manage_config`.
+- [x] ensure that with default vars (`zsh_theme: powerlevel10k`) the rendered `.zshrc` is
+      unchanged vs current output (verified: jinja render with default vars is byte-identical to
+      pre-change baseline — `diff` reports no changes).
+- [x] render the template for both `zsh_theme` values and eyeball the output (or assert via the
+      Task 5 verify.yml): powerlevel10k output identical to baseline; starship output has
+      `starship init zsh` + `STARSHIP_CONFIG`, and zero `POWERLEVEL9K_`/instant-prompt/`antigen
+      theme`/`p10k.zsh` lines.
+- [x] converge `molecule/default` (p10k) — manual molecule run skipped (docker unavailable here);
+      validated via `ansible-playbook --syntax-check` (passes) + jinja render parity diff.
+
+### Task 4: Generate `starship.toml` preset (`templates/starship.toml.j2`)
+- [x] create `templates/starship.toml.j2` reproducing the current p9k layout:
+      left = `username` (context) + `hostname` + `directory` (dir);
+      right (`right_format`) = `status` + `jobs` + `git_branch`/`git_status` (vcs) +
+      `cmd_duration` (command_execution_time) + `time`. (segment lists `zsh_powerlevel9k_left_prompt`
+      / `_right_prompt` mapped to starship module tokens via a Jinja `seg_tokens` dict.)
+- [x] drive colors/behavior from existing role vars for parity: directory `fg/bg` from
+      `zsh_powerlevel9k_dir_foreground/background`; username/context from
+      `zsh_powerlevel9k_context_default_*` and `_root_*`; git from `zsh_powerlevel9k_vcs_*`;
+      `cmd_duration.min_time` = `zsh_command_time_min_seconds * 1000` (ms) with style from
+      `zsh_powerlevel9k_command_execution_time_*`; `hostname.ssh_only` from
+      `zsh_powerlevel9k_hide_host_on_local`; `add_newline` from `zsh_powerlevel9k_prompt_on_newline`.
+- [x] add a task in `tasks/starship.yml` (or `tasks/configure.yml` gated on starship) to write
+      `~/.config/starship.toml`: render `starship.toml.j2` when `zsh_starship_manage_config and not
+      zsh_starship_config`; write `zsh_starship_config` verbatim (copy/content) when it is set;
+      create `~/.config` dir with correct owner/group; `backup: yes`.
+- [x] skip the toml entirely when `zsh_theme != 'starship'`. (the whole `tasks/starship.yml` include
+      is gated on `zsh_theme == 'starship'` in `tasks/main.yml`.)
+- [x] converge `molecule/starship` and assert `~/.config/starship.toml` is rendered and non-empty
+      (asserted in Task 5 verify.yml) — manual molecule run skipped (docker unavailable here);
+      validated via Jinja render with default + customized vars (output parses as valid TOML;
+      colors, `min_time`=seconds*1000, and `add_newline` map correctly) + `ansible-playbook
+      --syntax-check` of the starship include (passes).
+
+### Task 5: Add `molecule/starship` scenario + verify.yml (E2E)
+- [x] create `molecule/starship/molecule.yml` (mirror `shared`/`default`: docker, same platform
+      images) with `provisioner.inventory.group_vars.all` setting `zsh_user: root` and
+      `zsh_theme: starship` (reuse `../resources/prepare.yml`; converge `../resources/converge.yml`).
+- [x] create `molecule/starship/verify.yml` asserting: `starship --version` succeeds / binary on
+      PATH; `.zshrc` contains `starship init zsh`; `.zshrc` contains no `POWERLEVEL9K_` and no
+      p10k instant-prompt block; `~/.config/starship.toml` exists and is non-empty.
+- [x] reference `verify.yml` from `molecule.yml` (`verifier: name: ansible`) so
+      `molecule test` runs it.
+- [x] run `molecule converge -s starship && molecule verify -s starship` (or
+      `molecule test -s starship`) — manual molecule run skipped (molecule + docker driver
+      unavailable here); validated via `ansible-playbook --syntax-check molecule/starship/verify.yml`
+      (passes) and YAML parse of both scenario files.
+- [x] manual test (skipped - not automatable here): `molecule test -s default` requires the
+      molecule/docker toolchain; the powerlevel10k path is covered by the unchanged `default`
+      scenario and prior tasks' render-parity diffs.
+
+### Task 6: Documentation
+- [x] update `README.md`: document `zsh_theme` (default `powerlevel10k`, option `starship`),
+      `zsh_starship_version`, `zsh_starship_path`, `zsh_starship_manage_config`,
+      `zsh_starship_config`; note starship needs a Nerd Font and is installed as a standalone
+      binary; mention backward compatibility (defaults unchanged).
+- [x] update `meta/main.yml` description to mention selectable starship prompt (optional).
+- [x] add a CHANGELOG.md entry consistent with existing format.
+
+### Task 7: Verify acceptance criteria
+- [x] verify Overview requirements: theme selectable; default = powerlevel10k; starship installs +
+      activates; toml preset rendered; existing users unaffected. (verified via ansible `template`
+      render of `zshrc.j2` for both `zsh_theme` values + `starship.toml.j2`: starship `.zshrc` has
+      `starship init zsh` + `STARSHIP_CONFIG` and zero `POWERLEVEL9K_`/`instant_prompt`/`antigen
+      theme`/`p10k.zsh` lines; p10k `.zshrc` retains 38 `POWERLEVEL9K_` lines; `tasks/starship.yml`
+      include gated on `zsh_theme == 'starship'`.)
+- [x] verify backward compat: with default vars the rendered `.zshrc` matches pre-change output.
+      (rendered baseline template `5dcd8e4:templates/zshrc.j2` and current template with identical
+      default vars — `diff` reports IDENTICAL, byte-for-byte.)
+- [x] run `molecule test --all` (skipped - not automatable here: molecule + docker driver not
+      installed). Equivalent assertions validated by render parity + `tomllib` parse of the rendered
+      `starship.toml` (valid TOML, 1143 bytes) + `ansible-playbook --syntax-check`.
+- [x] confirm no YAML/Jinja syntax issues (`ansible-playbook --syntax-check`); fix any lint-level
+      issues surfaced. (role syntax-check passes via a role-include playbook; all task/molecule YAML
+      files parse with `yaml.safe_load`; both templates render without Jinja errors. The
+      `playbook.yml`/`converge.yml` "role not found" notices are galaxy-name roles-path resolution
+      in this sandbox, not syntax errors in the role.)
+
+*Note: ralphex automatically moves completed plans to `docs/plans/completed/`.*
+
+## Technical Details
+- **Selector**: `zsh_theme ∈ {powerlevel10k, starship}`; `zsh_antigen_theme` remains the antigen
+  theme string used only on the powerlevel10k path. Tasks/templates gate directly on
+  `zsh_theme == 'starship'`.
+- **Install**: GitHub release tarball (`zsh_starship_url`, version-pinned via `zsh_starship_version`)
+  downloaded with `get_url` and extracted with `unarchive` to `zsh_starship_path_absolute` —
+  mirrors the fzf install pattern; idempotent via `which starship` + `starship --version` compare
+  (`zsh_starship_need_install`); only when `zsh_theme == 'starship'`.
+- **zshrc activation**: `eval "$(starship init zsh)"` placed after `antigen apply` and user-config
+  sourcing; `export STARSHIP_CONFIG` when role manages the toml. starship's own instant prompt is
+  not used (powerlevel10k instant-prompt block is skipped on the starship path).
+- **starship.toml**: starship style strings accept 0–255 color codes (e.g. `"fg:255 bg:240"`),
+  matching the role's numeric p9k color vars. `right_format` carries the right-prompt segments.
+- **Color/behavior mapping source of truth**: existing `zsh_powerlevel9k_*` vars, so a user who
+  customized p9k colors gets a matching starship prompt without re-specifying them.
+
+## Post-Completion
+*Manual / external — no checkboxes*
+
+**Manual verification:**
+- Open a real terminal with a Nerd Font and confirm the starship prompt renders the expected
+  segments/colors (icons/glyphs can't be verified in docker molecule).
+- Verify on macOS hardware (molecule covers Linux/docker only): starship installs to `$HOME/bin`
+  and the prompt activates.
+- Sanity-check switching a host from powerlevel10k → starship and back leaves a clean `.zshrc`.

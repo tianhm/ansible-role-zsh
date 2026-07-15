@@ -1,0 +1,68 @@
+---
+# Install the starship prompt binary (used when zsh_theme == 'starship').
+# Mirrors the fzf install pattern: install-location/version check, get_url
+# tarball, unarchive.
+
+# Resolve the install location first: starship lives in $HOME/bin (per-user) or
+# /usr/local/bin (shared). $HOME/bin is only added to PATH inside the generated
+# .zshrc, not in Ansible's noninteractive shell, so the idempotence check must
+# look at the install location directly rather than `which starship`.
+- name: Set zsh_starship_path_absolute to /usr/local/bin
+  set_fact:
+    zsh_starship_path_absolute: /usr/local/bin
+  changed_when: false
+  when: zsh_shared
+
+- name: Check starship installed
+  stat:
+    path: "{{ zsh_starship_path_absolute }}/starship"
+  check_mode: no
+  register: zsh_register_starship_stat
+
+- name: Get installed starship version
+  # shell (not command) so a "~user/bin" install path is tilde-expanded.
+  shell: "{{ zsh_starship_path_absolute }}/starship --version"
+  changed_when: false
+  failed_when: false
+  check_mode: no
+  register: zsh_register_starship_version
+  when: zsh_register_starship_stat.stat.exists
+
+- name: Set starship install fact (install when missing or version mismatch)
+  set_fact:
+    zsh_starship_need_install: "{{ not zsh_register_starship_stat.stat.exists or (zsh_register_starship_version.stdout | default('')).split()[1:2] != [zsh_starship_version] }}"
+  changed_when: false
+
+- name: Ensure users home binary folder is present
+  file:
+    path: "{{ zsh_starship_path_absolute }}"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user_group }}"
+    mode: u=rwx,g=rwx,o=rx
+    state: directory
+  when: not zsh_shared
+
+- name: Download starship tarball
+  become: yes
+  get_url:
+    url: "{{ zsh_starship_url }}"
+    dest: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    # Verify integrity against the SHA256 starship publishes alongside each asset.
+    checksum: "sha256:{{ zsh_starship_url }}.sha256"
+    mode: '0644'
+  when: zsh_starship_need_install
+
+- name: Extract starship to {{ zsh_starship_path_absolute }}
+  become: yes
+  # `tar` directly instead of the unarchive module: macOS ships BSD tar, which
+  # unarchive refuses ("GNU tar required"), yet BSD tar unpacks .tar.gz fine.
+  # shell (not command) so a "~user/bin" install path is tilde-expanded.
+  shell: "tar -xzf /tmp/starship-{{ zsh_starship_version }}.tar.gz -C {{ zsh_starship_path_absolute }} starship"
+  when: zsh_starship_need_install
+
+- name: Remove starship tarball
+  become: yes
+  file:
+    path: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
+    state: absent
+  when: zsh_starship_need_install

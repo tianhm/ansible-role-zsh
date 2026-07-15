@@ -1,6 +1,6 @@
 ---
 scenario:
-  name: user
+  name: starship
 driver:
   name: docker
 platforms:
@@ -11,10 +11,13 @@ platforms:
 provisioner:
   name: ansible
   playbooks:
-    prepare: prepare.yml
+    prepare: ../resources/prepare.yml
     converge: ../resources/converge.yml
   inventory:
     group_vars:
       all:
-        zsh_user: testuser
-        zsh_theme: powerlevel10k
+        zsh_user: root
+        zsh_theme: starship
+
+verifier:
+  name: ansible
