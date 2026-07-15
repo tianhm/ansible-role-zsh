@@ -116,11 +116,13 @@ Describe 'Get-ZshModuleAvailability' {
         Mock Get-Module {
             [pscustomobject]@{ Name = 'PSReadLine'; Version = [version]'2.3.4' }
         } -ParameterFilter { $Name -eq 'PSReadLine' }
-        Mock Get-Module { $null } -ParameterFilter { $Name -in @('PSFzf', 'posh-git') }
+        Mock Get-Module { $null } -ParameterFilter { $Name -eq 'PSFzf' }
+        Mock Get-Module { $true } -ParameterFilter { $Name -eq 'posh-git' }
         $a = Get-ZshModuleAvailability
         $a.PSReadLinePrediction | Should -BeTrue
         $a.PSReadLineListView   | Should -BeTrue
         $a.PSFzf                | Should -BeFalse
+        $a.PoshGit              | Should -BeTrue
     }
 
     It 'reports prediction but not ListView for PSReadLine 2.1.x' {
@@ -131,5 +133,15 @@ Describe 'Get-ZshModuleAvailability' {
         $a = Get-ZshModuleAvailability
         $a.PSReadLinePrediction | Should -BeTrue
         $a.PSReadLineListView   | Should -BeFalse
+        $a.PoshGit              | Should -BeFalse
+    }
+
+    It 'reports ListView available at exactly PSReadLine 2.2.0 (boundary is >=, not >)' {
+        Mock Get-Module {
+            [pscustomobject]@{ Name = 'PSReadLine'; Version = [version]'2.2.0' }
+        } -ParameterFilter { $Name -eq 'PSReadLine' }
+        Mock Get-Module { $null } -ParameterFilter { $Name -in @('PSFzf', 'posh-git') }
+        $a = Get-ZshModuleAvailability
+        $a.PSReadLineListView   | Should -BeTrue
     }
 }

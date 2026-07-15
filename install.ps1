@@ -81,6 +81,11 @@ function Install-ZshBinary {
         'scoop'  { scoop install $Name }
         'choco'  { choco install $Name -y }
     }
+    # $LASTEXITCODE is only set by native executables; if it's null (e.g. the
+    # manager shimmed out to a function/cmdlet), fall back to $? as the
+    # "no error occurred" signal.
+    if ($null -eq $LASTEXITCODE) { return [bool]$? }
+    return $LASTEXITCODE -eq 0
 }
 
 function Install-ZshModule {
@@ -137,29 +142,32 @@ function Invoke-ZshWindowsInstall {
 
     $pm = Get-ZshPackageManager -Prefer $PackageManager
     if (-not $pm) {
-        Write-Error @'
+        throw @'
 No supported package manager found. Install one of:
   winget : https://learn.microsoft.com/windows/package-manager/winget/
   scoop  : https://scoop.sh/
   choco  : https://chocolatey.org/install
 Then re-run install.ps1.
 '@
-        exit 1
     }
     Write-Host "Using package manager: $pm"
 
-    Install-ZshBinary -Manager $pm -Name 'starship'; $summary['starship prompt'] = 'installed'
-    Install-ZshBinary -Manager $pm -Name 'fzf';      $summary['fzf'] = 'installed'
+    $starshipOk = Install-ZshBinary -Manager $pm -Name 'starship'
+    $summary['starship prompt'] = if ($starshipOk) { 'installed' } else { 'failed' }
+    $fzfOk = Install-ZshBinary -Manager $pm -Name 'fzf'
+    $summary['fzf'] = if ($fzfOk) { 'installed' } else { 'failed' }
     if (-not $NoCmd) {
-        Install-ZshBinary -Manager $pm -Name 'clink'
+        $clinkOk = Install-ZshBinary -Manager $pm -Name 'clink'
         Write-ZshClinkInit
-        $summary['cmd.exe prompt (clink)'] = 'installed'
+        $summary['cmd.exe prompt (clink)'] = if ($clinkOk) { 'installed' } else { 'failed' }
     } else {
         $summary['cmd.exe prompt (clink)'] = 'skipped (-NoCmd)'
     }
 
     if (-not $NoPSFzf)   { $summary['PSFzf']    = if (Install-ZshModule 'PSFzf')    { 'installed' } else { 'skipped (install failed)' } }
+    else                 { $summary['PSFzf']    = 'skipped (-NoPSFzf)' }
     if (-not $NoPoshGit) { $summary['posh-git'] = if (Install-ZshModule 'posh-git') { 'installed' } else { 'skipped (install failed)' } }
+    else                 { $summary['posh-git'] = 'skipped (-NoPoshGit)' }
 
     Get-ZshStarshipConfig -Destination (Join-Path $HOME '.config/starship.toml') -Force:$Force
 

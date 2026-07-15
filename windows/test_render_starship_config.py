@@ -22,6 +22,10 @@ def test_render_contains_expected_prompt_segments():
 
 
 def test_committed_config_is_not_stale():
+    # Drift guard: catches "templates/starship.toml.j2 edited but windows/starship.toml
+    # not regenerated". It does NOT independently verify that this harness's Jinja
+    # settings still match Ansible's `template` module — that parity is maintained by
+    # trim_blocks=True in render_starship_config.py.
     assert COMMITTED.exists(), "run: python windows/render_starship_config.py > windows/starship.toml"
     assert COMMITTED.read_text() == _render(), (
         "windows/starship.toml is stale; regenerate with "
