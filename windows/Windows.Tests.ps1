@@ -145,3 +145,12 @@ Describe 'Get-ZshModuleAvailability' {
         $a.PSReadLineListView   | Should -BeTrue
     }
 }
+
+Describe 'Invoke-ZshWindowsInstall -PackageManager validation' {
+    # The ValidateSet attribute was removed from the param (it breaks `irm | iex`);
+    # validation now happens in code and must reject bad values before any install.
+    It 'throws on an invalid package manager' {
+        { Invoke-ZshWindowsInstall -PackageManager 'bogus' } |
+            Should -Throw -ExpectedMessage "*Invalid -PackageManager 'bogus'*"
+    }
+}

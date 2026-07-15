@@ -5,7 +5,10 @@ param(
     [switch]$NoPSFzf,
     [switch]$NoPoshGit,
     [switch]$Force,
-    [ValidateSet('winget', 'scoop', 'choco')]
+    # NOTE: no [ValidateSet] here on purpose. When this script is run via
+    # `irm ... | iex`, PowerShell initializes $PackageManager to '' and a
+    # ValidateSet attribute rejects that empty default, breaking the primary
+    # install path. The value is validated manually in Invoke-ZshWindowsInstall.
     [string]$PackageManager
 )
 
@@ -138,6 +141,9 @@ function Invoke-ZshWindowsInstall {
         [switch]$NoCmd, [switch]$NoAutosuggestions, [switch]$NoPSFzf,
         [switch]$NoPoshGit, [switch]$Force, [string]$PackageManager
     )
+    if ($PackageManager -and $PackageManager -notin @('winget', 'scoop', 'choco')) {
+        throw "Invalid -PackageManager '$PackageManager'. Valid values: winget, scoop, choco."
+    }
     $summary = [ordered]@{}
 
     $pm = Get-ZshPackageManager -Prefer $PackageManager
@@ -192,6 +198,10 @@ Then re-run install.ps1.
 }
 
 # ---- entrypoint (skipped when dot-sourced for tests) ----
+# Pass params explicitly rather than splatting $PSBoundParameters: under
+# `irm ... | iex` the script has no bound parameters, so the splat would be
+# empty/undefined. The param-block variables are always defined here.
 if (-not $env:ZSH_INSTALL_NO_RUN) {
-    Invoke-ZshWindowsInstall @PSBoundParameters
+    Invoke-ZshWindowsInstall -NoCmd:$NoCmd -NoAutosuggestions:$NoAutosuggestions `
+        -NoPSFzf:$NoPSFzf -NoPoshGit:$NoPoshGit -Force:$Force -PackageManager $PackageManager
 }
