@@ -7,4 +7,4 @@
     # your variables here
     # zsh_autosuggestions_bind_key: "^U"
   roles:
-    - viasite.zsh
+    - viasite-ansible.zsh
