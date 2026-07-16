@@ -1,36 +1,45 @@
+---
 - name: Get Ubuntu/Debian/Redhat users's home path
-  shell: "egrep '^.*:.*:[1-9][0-9]{3,4}:.*:.*:.*:.*(bash|zsh)$' /etc/passwd | awk -F: '{print $6}'"
+  ansible.builtin.shell: |
+    set -o pipefail
+    egrep '^.*:.*:[1-9][0-9]{3,4}:.*:.*:.*:.*(bash|zsh)$' /etc/passwd | awk -F: '{print $6}'
+  args:
+    executable: /bin/bash
   register: paths
   when: ansible_facts['os_family'] in ['Debian', 'RedHat']
   changed_when: false
 
 - name: Get Ubuntu/Debian/Redhat users
-  shell: "egrep '^.*:.*:[1-9][0-9]{3,4}:.*:.*:.*:.*(bash|zsh)$' /etc/passwd | awk -F: '{print $1}'"
+  ansible.builtin.shell: |
+    set -o pipefail
+    egrep '^.*:.*:[1-9][0-9]{3,4}:.*:.*:.*:.*(bash|zsh)$' /etc/passwd | awk -F: '{print $1}'
+  args:
+    executable: /bin/bash
   register: zsh_users
   when: ansible_facts['os_family'] in ['Debian', 'RedHat'] and paths is defined and paths.stdout != ""
   changed_when: false
 - name: Format user list
-  set_fact:
-    zsh_list_users: "{{['root','root'] + zsh_users.stdout.splitlines()| list}}"
+  ansible.builtin.set_fact:
+    zsh_list_users: "{{ ['root', 'root'] + zsh_users.stdout.splitlines() | list }}"
   when: ansible_facts['os_family'] == 'Debian' and paths is defined and paths.stdout != ""
 
 - name: Merge the users path and root/skel to list
-  set_fact:
-    allpaths: "{{ ['/root','/etc/skel'] + paths.stdout.splitlines()| list }}"
+  ansible.builtin.set_fact:
+    allpaths: "{{ ['/root', '/etc/skel'] + paths.stdout.splitlines() | list }}"
   when: zsh_shared and paths is defined and paths.stdout != ""
 - name: Use only root/skel for the list (no users found)
-  set_fact:
-    allpaths: "{{ ['/root','/etc/skel']}}"
+  ansible.builtin.set_fact:
+    allpaths: "{{ ['/root', '/etc/skel'] }}"
   when: paths is defined and paths.stdout == ""
 
-- name: Install .zshrc in {{allpaths | join(',')}}
-  become: yes
-  copy:
+- name: Install .zshrc in {{ allpaths | join(',') }}
+  become: true
+  ansible.builtin.copy:
     content: source /usr/share/zsh-config/.zshrc
-    dest: "{{item}}/.zshrc"
-    owner: "{{zsh_list_users[id]| default('root')}}"
-    mode: '0644'
-  loop: "{{allpaths}}"
+    dest: "{{ item }}/.zshrc"
+    owner: "{{ zsh_list_users[id] | default('root') }}"
+    mode: "0644"
+  loop: "{{ allpaths }}"
   loop_control:
     index_var: id
   when: allpaths is defined

@@ -1,42 +1,47 @@
 ---
-
-- include_tasks: install.yml
+- name: Install zsh and plugins
+  ansible.builtin.include_tasks: install.yml
   tags:
     - zsh
     - install
 
-- include_tasks: starship.yml
+- name: Install starship prompt
+  ansible.builtin.include_tasks: starship.yml
   tags:
     - zsh
     - install
   when: zsh_theme == 'starship'
 
-- include_tasks: configure.yml
+- name: Configure zsh
+  ansible.builtin.include_tasks: configure.yml
   tags:
     - zsh
     - configure
 
-- include_tasks: starship-config.yml
+- name: Configure starship prompt
+  ansible.builtin.include_tasks: starship-config.yml
   tags:
     - zsh
     - configure
   when: zsh_theme == 'starship'
 
-- include_tasks: post-install.yml
+- name: Run post-install steps
+  ansible.builtin.include_tasks: post-install.yml
   tags:
     - zsh
     - install
     - post_install
 
-- include_tasks: source-for-users-shared.yml
+- name: Source zsh config for all shared users
+  ansible.builtin.include_tasks: source-for-users-shared.yml
   tags:
     - zsh
     - install
   when: zsh_shared and zsh_source_for_all_users
 
 - name: Reset antigen cache
-  command: "timeout 10s /bin/zsh -c 'source {{ zsh_config }}; antigen reset'"
-  become: yes
+  ansible.builtin.command: "timeout 10s /bin/zsh -c 'source {{ zsh_config }}; antigen reset'"
+  become: true
   become_user: "{{ zsh_user }}"
   changed_when: false
   failed_when: false
