@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [4.0.2](https://github.com/viasite-ansible/ansible-role-zsh/releases/tag/v4.0.2) - 2026-07-16
+
+### CI
+
+- Auto-update CHANGELOG.md on release via git-cliff (#90) ([eb9c821](https://github.com/viasite-ansible/ansible-role-zsh/commit/eb9c8218a72c68b4111039b986d7496a26cefafd))
+
 ## [4.0.1](https://github.com/viasite-ansible/ansible-role-zsh/releases/tag/v4.0.1) - 2026-07-16
 
 ### Bug Fixes
