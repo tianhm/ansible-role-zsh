@@ -1,0 +1,11 @@
+---
+# https://ansible.readthedocs.io/projects/lint/configuring/
+exclude_paths:
+  - .github/
+  - .venv/
+  - windows/
+
+skip_list:
+  # vars/ and package lists hold long templated URLs and one-line ternaries
+  # that don't wrap cleanly; readability is better left on a single line.
+  - yaml[line-length]

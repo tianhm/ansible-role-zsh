@@ -1,64 +1,64 @@
 ---
-
 - name: Update package cache
-  package:
-    update_cache: yes
+  ansible.builtin.package:
+    update_cache: true
     cache_valid_time: 86400
-  become: yes
+  become: true
   when: ansible_facts['os_family'] != 'Darwin' and not ansible_facts['pkg_mgr'] is regex('^dnf')
 
 - name: Update package cache (dnf)
-  package:
-    update_cache: yes
-  become: yes
+  ansible.builtin.package:
+    update_cache: true
+  become: true
   when: ansible_facts['pkg_mgr'] == 'dnf'
 
 - name: Install zsh, git, wget, fd-find, fzf
-  package:
+  ansible.builtin.package:
     name:
       - zsh
       - git
       - wget
-      - "{{ 'fd-find' if (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version_compare('20.04', '>=') or ansible_facts['distribution'] == 'Debian' and ansible_facts['distribution_version'] is version_compare('11', '>=')) else 'curl' }}"  # fd-find for ubuntu >=20.04 and Debian >=11
+      - "{{ 'fd-find' if (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version_compare('20.04', '>=') or ansible_facts['distribution']
+        == 'Debian' and ansible_facts['distribution_version'] is version_compare('11', '>=')) else 'curl' }}" # fd-find for ubuntu >=20.04 and Debian >=11
       - "{{ 'fd' if ansible_facts['os_family'] == 'Darwin' else 'curl' }}"
       - "{{ 'fzf' if ansible_facts['os_family'] == 'Darwin' else 'curl' }}"
     state: present
   # brew don't work from root user on macOS
-  become: yes
+  become: true
   become_user: "{{ 'root' if ansible_facts['os_family'] != 'Darwin' else zsh_user }}"
   when: not (zsh_user == 'root' and ansible_facts['os_family'] == 'Darwin')
 
-- name: Check if {{ zsh_antigen_path }} exist
-  stat:
+- name: Check if antigen path exists {{ zsh_antigen_path }}
+  ansible.builtin.stat:
     path: "{{ zsh_antigen_path }}"
   register: zsh_antigen_path_present
 
-- name: Create directory {{ zsh_antigen_path}}
-  become: yes
+- name: Create directory {{ zsh_antigen_path }}
+  become: true
   become_user: "{{ zsh_user }}"
-  file:
+  ansible.builtin.file:
     dest: "{{ zsh_antigen_path }}"
-    mode: '0755'
+    mode: "0755"
     state: directory
   when: not zsh_antigen_path_present.stat.exists
 
 - name: Clone antigen {{ zsh_antigen_version }}
-  git:
+  ansible.builtin.git:
     repo: "{{ zsh_antigen_repo }}"
     dest: "{{ zsh_antigen_path }}/antigen"
     version: "{{ zsh_antigen_version }}"
-    force: yes
-  become: yes
+    force: true
+  become: true
   become_user: "{{ zsh_user }}"
   register: zsh_register_antigen_clone
 
 - name: Clone iwfmp/mc-solarized-skin
-  git:
+  ansible.builtin.git:
     repo: https://github.com/iwfmp/mc-solarized-skin.git
     version: master
     dest: "~{{ zsh_user }}/.mc/lib/mc-solarized"
-    force: yes
-  become: yes
+    force: true
+  become: true
   become_user: "{{ zsh_user }}"
   when: zsh_mc_solarized_skin and not zsh_shared
 
@@ -67,39 +67,39 @@
 # .zshrc, not in Ansible's noninteractive shell, so the idempotence check must
 # look at the install location directly rather than `which fzf`.
 - name: Set zsh_fzf_path to /usr/local/bin
-  set_fact:
+  ansible.builtin.set_fact:
     zsh_fzf_path: /usr/local/bin
   changed_when: false
   when: zsh_shared
 
 - name: Set zsh_fzf_path_absolute
-  set_fact:
+  ansible.builtin.set_fact:
     zsh_fzf_path_absolute: "{{ zsh_fzf_path | replace('$HOME', '~' + zsh_user) }}"
   changed_when: false
 
 - name: Check fzf installed
-  stat:
+  ansible.builtin.stat:
     path: "{{ zsh_fzf_path_absolute }}/fzf"
-  check_mode: no
+  check_mode: false
   register: zsh_register_fzf_stat
 
 - name: Get installed fzf version
   # shell (not command) so a "~user/bin" install path is tilde-expanded.
-  shell: "{{ zsh_fzf_path_absolute }}/fzf --version"
+  ansible.builtin.command: "{{ zsh_fzf_path_absolute }}/fzf --version"
   changed_when: false
   failed_when: false
-  check_mode: no
+  check_mode: false
   register: zsh_register_fzf_version
   when: zsh_register_fzf_stat.stat.exists
 
 - name: Set fzf install fact (install when missing or version mismatch)
   # fzf --version prints "0.73.1 (ce4bef75)", so the first token is the version.
-  set_fact:
+  ansible.builtin.set_fact:
     zsh_fzf_need_install: "{{ not zsh_register_fzf_stat.stat.exists or (zsh_register_fzf_version.stdout | default('')).split()[0:1] != [zsh_fzf_version] }}"
   changed_when: false
 
 - name: Ensure users home binary folder is present
-  file:
+  ansible.builtin.file:
     path: "{{ zsh_fzf_path_absolute }}"
     owner: "{{ zsh_user }}"
     group: "{{ zsh_user_group }}"
@@ -108,33 +108,33 @@
   when: not zsh_shared
 
 - name: Download fzf tarball
-  become: yes
-  get_url:
+  become: true
+  ansible.builtin.get_url:
     url: "{{ zsh_fzf_url }}"
     dest: "/tmp/fzf-{{ zsh_fzf_version }}.tar.gz"
-    mode: '0644'
+    mode: "0644"
   when: zsh_fzf_need_install and ansible_facts['os_family'] != 'Darwin'
 
 - name: Extract fzf to {{ zsh_fzf_path_absolute }}
-  become: yes
-  unarchive:
+  become: true
+  ansible.builtin.unarchive:
     src: "/tmp/fzf-{{ zsh_fzf_version }}.tar.gz"
     dest: "{{ zsh_fzf_path_absolute }}"
-    remote_src: yes
+    remote_src: true
   when: zsh_fzf_need_install and ansible_facts['os_family'] != 'Darwin'
 
 - name: Remove fzf tarball
-  become: yes
-  file:
+  become: true
+  ansible.builtin.file:
     path: "/tmp/fzf-{{ zsh_fzf_version }}.tar.gz"
     state: absent
   when: zsh_fzf_need_install and ansible_facts['os_family'] != 'Darwin'
 
 - name: Set directory permissions
-  become: yes
-  file:
+  become: true
+  ansible.builtin.file:
     name: "{{ zsh_antigen_path }}"
     owner: "{{ zsh_user }}"
     group: "{{ zsh_user_group }}"
-    recurse: yes
+    recurse: true
   changed_when: false

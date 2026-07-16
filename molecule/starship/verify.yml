@@ -16,24 +16,24 @@
     expected_starship_version: "1.23.0"
   tasks:
     - name: Stat starship binary at install location
-      stat:
+      ansible.builtin.stat:
         path: "{{ starship_bin }}"
       register: starship_bin_stat
 
     - name: Assert starship binary was installed
-      assert:
+      ansible.builtin.assert:
         that:
           - starship_bin_stat.stat.exists
           - starship_bin_stat.stat.executable
         fail_msg: "starship binary not found at {{ starship_bin }}"
 
     - name: Get starship version
-      command: "{{ starship_bin }} --version"
+      ansible.builtin.command: "{{ starship_bin }} --version"
       changed_when: false
       register: starship_version
 
     - name: Assert starship --version reports the pinned version
-      assert:
+      ansible.builtin.assert:
         that:
           - starship_version.rc == 0
           - "'starship' in starship_version.stdout"
@@ -41,23 +41,23 @@
         fail_msg: "starship --version did not report the pinned version {{ expected_starship_version }}: {{ starship_version.stdout }}"
 
     - name: Read rendered .zshrc
-      slurp:
+      ansible.builtin.slurp:
         src: "{{ zshrc_path }}"
       register: zshrc_slurp
 
     - name: Set zshrc content fact
-      set_fact:
+      ansible.builtin.set_fact:
         zshrc_content: "{{ zshrc_slurp.content | b64decode }}"
 
     - name: Assert .zshrc activates starship
-      assert:
+      ansible.builtin.assert:
         that:
           - "'eval \"$(starship init zsh)\"' in zshrc_content"
           - "'export STARSHIP_CONFIG=\"$HOME/.config/starship.toml\"' in zshrc_content"
         fail_msg: ".zshrc does not contain starship activation"
 
     - name: Assert .zshrc has no powerlevel10k wiring
-      assert:
+      ansible.builtin.assert:
         that:
           - "'POWERLEVEL9K_' not in zshrc_content"
           - "'p10k-instant-prompt' not in zshrc_content"
@@ -66,26 +66,26 @@
         fail_msg: ".zshrc still contains powerlevel10k wiring on the starship path"
 
     - name: Stat generated starship.toml
-      stat:
+      ansible.builtin.stat:
         path: "{{ starship_toml_path }}"
       register: starship_toml_stat
 
     - name: Assert starship.toml exists and is non-empty
-      assert:
+      ansible.builtin.assert:
         that:
           - starship_toml_stat.stat.exists
           - starship_toml_stat.stat.size > 0
         fail_msg: "~/.config/starship.toml is missing or empty"
 
     - name: Validate generated starship.toml parses
-      command: "{{ starship_bin }} print-config"
+      ansible.builtin.command: "{{ starship_bin }} print-config"
       environment:
         STARSHIP_CONFIG: "{{ starship_toml_path }}"
       changed_when: false
       register: starship_print_config
 
     - name: Assert generated starship.toml is valid TOML
-      assert:
+      ansible.builtin.assert:
         that:
           - starship_print_config.rc == 0
           - "'$directory' in starship_print_config.stdout or 'directory' in starship_print_config.stdout"

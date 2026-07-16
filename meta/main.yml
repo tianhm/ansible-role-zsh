@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: zsh
-  namespace: viasite
+  namespace: viasite-ansible
   author: Stanislav Popov
   company: Viasite
   description: oh-my-zsh with selectable powerlevel10k or starship prompt, fzf and other plugins
@@ -24,9 +24,7 @@ galaxy_info:
         - "9"
     - name: MacOSX
       versions:
-        - "10.12"
-        - "14.4"
-        - "26"
+        - all
   galaxy_tags:
     - system
     - shell

@@ -1,13 +1,14 @@
 ---
 - name: Prepare
   hosts: all
-  gather_facts: False
+  gather_facts: false
   tasks:
-    - name: apt-proxy
-      copy:
+    - name: Apt-proxy
+      ansible.builtin.copy:
         content: "Acquire::http::Proxy \"{{ lookup('env', 'APT_PROXY') }}\"; Acquire::https::Proxy \"false\";"
         dest: /etc/apt/apt.conf.d/01proxy
-      failed_when: False
+        mode: "0644"
+      failed_when: false
     - name: Update apt cache
-      package:
-        update_cache: yes
+      ansible.builtin.package:
+        update_cache: true

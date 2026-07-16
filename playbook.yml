@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Apply zsh role
+  hosts: all
   vars:
     # your extra bundles here
     zsh_antigen_bundles_extras: []

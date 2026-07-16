@@ -16,5 +16,5 @@ provisioner:
   inventory:
     group_vars:
       all:
-        zsh_shared: yes
+        zsh_shared: true
         zsh_theme: powerlevel10k

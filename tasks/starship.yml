@@ -8,33 +8,34 @@
 # .zshrc, not in Ansible's noninteractive shell, so the idempotence check must
 # look at the install location directly rather than `which starship`.
 - name: Set zsh_starship_path_absolute to /usr/local/bin
-  set_fact:
+  ansible.builtin.set_fact:
     zsh_starship_path_absolute: /usr/local/bin
   changed_when: false
   when: zsh_shared
 
 - name: Check starship installed
-  stat:
+  ansible.builtin.stat:
     path: "{{ zsh_starship_path_absolute }}/starship"
-  check_mode: no
+  check_mode: false
   register: zsh_register_starship_stat
 
 - name: Get installed starship version
   # shell (not command) so a "~user/bin" install path is tilde-expanded.
-  shell: "{{ zsh_starship_path_absolute }}/starship --version"
+  ansible.builtin.command: "{{ zsh_starship_path_absolute }}/starship --version"
   changed_when: false
   failed_when: false
-  check_mode: no
+  check_mode: false
   register: zsh_register_starship_version
   when: zsh_register_starship_stat.stat.exists
 
 - name: Set starship install fact (install when missing or version mismatch)
-  set_fact:
-    zsh_starship_need_install: "{{ not zsh_register_starship_stat.stat.exists or (zsh_register_starship_version.stdout | default('')).split()[1:2] != [zsh_starship_version] }}"
+  ansible.builtin.set_fact:
+    zsh_starship_need_install: "{{ not zsh_register_starship_stat.stat.exists or (zsh_register_starship_version.stdout | default('')).split()[1:2] != [zsh_starship_version]
+      }}"
   changed_when: false
 
 - name: Ensure users home binary folder is present
-  file:
+  ansible.builtin.file:
     path: "{{ zsh_starship_path_absolute }}"
     owner: "{{ zsh_user }}"
     group: "{{ zsh_user_group }}"
@@ -43,26 +44,27 @@
   when: not zsh_shared
 
 - name: Download starship tarball
-  become: yes
-  get_url:
+  become: true
+  ansible.builtin.get_url:
     url: "{{ zsh_starship_url }}"
     dest: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
     # Verify integrity against the SHA256 starship publishes alongside each asset.
     checksum: "sha256:{{ zsh_starship_url }}.sha256"
-    mode: '0644'
+    mode: "0644"
   when: zsh_starship_need_install
 
 - name: Extract starship to {{ zsh_starship_path_absolute }}
-  become: yes
+  become: true
   # `tar` directly instead of the unarchive module: macOS ships BSD tar, which
   # unarchive refuses ("GNU tar required"), yet BSD tar unpacks .tar.gz fine.
   # shell (not command) so a "~user/bin" install path is tilde-expanded.
-  shell: "tar -xzf /tmp/starship-{{ zsh_starship_version }}.tar.gz -C {{ zsh_starship_path_absolute }} starship"
+  ansible.builtin.command: "tar -xzf /tmp/starship-{{ zsh_starship_version }}.tar.gz -C {{ zsh_starship_path_absolute }} starship" # noqa: command-instead-of-module
+  changed_when: true
   when: zsh_starship_need_install
 
 - name: Remove starship tarball
-  become: yes
-  file:
+  become: true
+  ansible.builtin.file:
     path: "/tmp/starship-{{ zsh_starship_version }}.tar.gz"
     state: absent
   when: zsh_starship_need_install
