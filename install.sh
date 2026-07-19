@@ -58,7 +58,12 @@ else
 fi
 
 # Avoid interactive prompts: only ask for the become password when sudo is not passwordless.
+# Invalidate any cached sudo credentials first (the apt step above primes them), so the
+# probe reflects the real sudoers policy instead of a warm timestamp cache. Without this,
+# sudo -n true wrongly succeeds, -K is skipped, and the cache expires before ansible runs
+# become -> "sudo: a password is required" (common in WSL).
 become=(-b)
+sudo -k 2>/dev/null || true
 if ! sudo -n true 2>/dev/null; then
     become=(-b -K)
 fi
